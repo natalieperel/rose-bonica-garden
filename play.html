@@ -1,0 +1,819 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Rose Bonica — Garden of Gems</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a1a0e; overflow:hidden; font-family:Arial,sans-serif; }
+canvas { display:block; }
+
+/* ── BACK LINK ── */
+#back-link {
+  position:fixed; top:18px; left:22px; z-index:300;
+  font:800 9px/1 Arial; letter-spacing:.22em; text-transform:uppercase;
+  text-decoration:none; color:rgba(255,255,255,0.45);
+  transition:color .2s;
+}
+#back-link:hover { color:#fff; }
+
+/* ── GEM COUNTER ── */
+#gem-counter {
+  position:fixed; top:18px; right:22px; z-index:300;
+  font:800 10px/1 Arial; letter-spacing:.18em; text-transform:uppercase;
+  color:rgba(255,255,255,0.35);
+}
+#gem-counter b { color:#4ECDC4; font-weight:900; }
+
+/* ── CONTROLS HINT ── */
+#controls-hint {
+  position:fixed; bottom:26px; left:50%; transform:translateX(-50%);
+  z-index:300; text-align:center; white-space:nowrap;
+  font:700 9px/1 Arial; letter-spacing:.2em; text-transform:uppercase;
+  color:rgba(255,255,255,0.32);
+  animation:hintPulse 3s ease-in-out infinite;
+  transition:opacity 1s;
+}
+#controls-hint.fade { opacity:0; pointer-events:none; }
+@keyframes hintPulse {
+  0%,100% { opacity:0.5; }
+  50%     { opacity:1; }
+}
+
+/* ── ZONE LABEL ── */
+#zone-label {
+  position:fixed; top:42%; left:50%; transform:translateX(-50%);
+  z-index:300; text-align:center; pointer-events:none;
+  font:900 11px/1 Arial; letter-spacing:.35em; text-transform:uppercase;
+  color:rgba(255,255,255,0); transition:color 1.2s;
+}
+#zone-label.show { color:rgba(255,255,255,0.5); }
+
+/* ── PROXIMITY RING (shows gem nearby) ── */
+#proximity-ring {
+  position:fixed; bottom:26px; left:50%; transform:translateX(-50%);
+  z-index:290; width:42px; height:42px; border-radius:50%;
+  border:2px solid rgba(255,255,255,0.0);
+  display:flex; align-items:center; justify-content:center;
+  font:800 8px/1 Arial; letter-spacing:.1em; text-transform:uppercase;
+  color:rgba(255,255,255,0); transition:all 0.4s;
+  pointer-events:none;
+}
+#proximity-ring.active {
+  border-color:rgba(255,255,255,0.55);
+  color:rgba(255,255,255,0.6);
+  animation:ringPulse 0.9s ease-in-out infinite;
+}
+@keyframes ringPulse {
+  0%,100% { box-shadow:0 0 0 0 rgba(255,255,255,0.25); }
+  50%     { box-shadow:0 0 0 8px rgba(255,255,255,0); }
+}
+
+/* ── GEM CARD ── */
+#gem-card {
+  display:none; position:fixed; z-index:500;
+  top:50%; left:50%; transform:translate(-50%,-50%) scale(0.8);
+  background:rgba(8,24,12,0.93); backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,0.14); border-radius:16px;
+  padding:20px 22px 18px; width:min(330px,86vw);
+  box-shadow:0 12px 60px rgba(0,0,0,0.7);
+}
+#gem-card.visible {
+  display:block;
+  animation:cardIn 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+@keyframes cardIn {
+  0%   { opacity:0; transform:translate(-50%,-50%) scale(0.72); }
+  100% { opacity:1; transform:translate(-50%,-50%) scale(1); }
+}
+.card-close {
+  position:absolute; top:12px; right:14px;
+  background:none; border:none; color:rgba(255,255,255,0.35);
+  font-size:17px; cursor:pointer; padding:3px 6px; transition:color .15s;
+}
+.card-close:hover { color:#fff; }
+.card-art {
+  width:100%; aspect-ratio:1/1; border-radius:10px; overflow:hidden;
+  margin-bottom:13px; background:rgba(255,255,255,0.06);
+  display:flex; align-items:center; justify-content:center;
+}
+.card-art img { width:100%; height:100%; object-fit:cover; display:block; }
+.card-art-ph {
+  font:700 9px/1 Arial; letter-spacing:.15em; text-transform:uppercase;
+  color:rgba(255,255,255,0.22);
+}
+.card-type {
+  font:800 8px/1 Arial; letter-spacing:.22em; text-transform:uppercase;
+  color:rgba(255,255,255,0.38); margin-bottom:5px;
+}
+.card-title {
+  font:900 16px/1.25 Arial; color:#fff; margin-bottom:6px;
+}
+.card-collected {
+  font:700 8px/1 Arial; letter-spacing:.18em; text-transform:uppercase;
+  color:#4ECDC4; margin-bottom:14px;
+}
+.card-link {
+  display:inline-block; font:800 10px/1 Arial; letter-spacing:.16em;
+  text-transform:uppercase; text-decoration:none; color:#fff;
+  background:rgba(255,45,120,0.2); border:1px solid rgba(255,45,120,0.5);
+  border-radius:100px; padding:8px 20px;
+  transition:background .18s; box-shadow:0 0 16px 2px rgba(255,45,120,0.2);
+}
+.card-link:hover { background:rgba(255,45,120,0.44); }
+
+/* ── LOADING ── */
+#loading {
+  position:fixed; inset:0; z-index:1000;
+  background:#0a1a0e; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:22px;
+  transition:opacity 0.7s;
+}
+#loading h1 {
+  font:900 20px/1 Arial; letter-spacing:.38em; text-transform:uppercase; color:#fff;
+}
+#loading p {
+  font:700 8px/1 Arial; letter-spacing:.28em; text-transform:uppercase;
+  color:rgba(255,255,255,0.3);
+}
+#load-bar-wrap { width:160px; height:2px; background:rgba(255,255,255,0.1); border-radius:2px; }
+#load-bar { height:100%; width:0%; background:#4ECDC4; border-radius:2px; transition:width .2s; }
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading">
+  <h1>Rose Bonica</h1>
+  <div id="load-bar-wrap"><div id="load-bar"></div></div>
+  <p>Loading garden of gems…</p>
+</div>
+
+<!-- HUD -->
+<a href="index.html" id="back-link">← Garden</a>
+<div id="gem-counter">Gems &nbsp;<b id="gem-count">0</b> / 19</div>
+<div id="controls-hint">WASD · arrow keys · click to move</div>
+<div id="zone-label"></div>
+<div id="proximity-ring">near</div>
+
+<!-- Gem Card -->
+<div id="gem-card">
+  <button class="card-close" id="gem-card-close">&#x2715;</button>
+  <div class="card-art" id="gem-card-art"></div>
+  <div class="card-type" id="gem-card-type"></div>
+  <div class="card-title" id="gem-card-title"></div>
+  <div class="card-collected">✦ gem collected</div>
+  <a class="card-link" id="gem-card-link" href="#" target="_blank">Listen on Bandcamp &#8599;</a>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ═══════════════════════════════════════════
+// RELEASE DATA
+// ═══════════════════════════════════════════
+const GEM_DATA = [
+  {title:'Sleep Tight Baby',              type:'Album',  color:'#4ECDC4', art:'https://f4.bcbits.com/img/a1623713382_2.jpg', url:'https://rosebonica.bandcamp.com/album/sleep-tight-baby'},
+  {title:'Quicksand / Fear Me',           type:'Album',  color:'#FF729F', art:'https://f4.bcbits.com/img/a1450007863_2.jpg', url:'https://rosebonica.bandcamp.com/album/quicksand-fear-me'},
+  {title:'Nothing Lasts Forever',         type:'Album',  color:'#9D79BC', art:'https://f4.bcbits.com/img/a3712440464_2.jpg', url:'https://rosebonica.bandcamp.com/album/nothing-lasts-forever'},
+  {title:'Waiting For Change',            type:'Album',  color:'#F39237', art:'https://f4.bcbits.com/img/a0896476317_2.jpg', url:'https://rosebonica.bandcamp.com/album/waiting-for-change'},
+  {title:'Send Forgiveness / Disengage',  type:'Album',  color:'#E6F14A', art:'https://f4.bcbits.com/img/a3704722212_2.jpg', url:'https://rosebonica.bandcamp.com/album/send-forgiveness-disengage'},
+  {title:'Tears for the Tea Maker',       type:'Album',  color:'#FF729F', art:'https://f4.bcbits.com/img/a3751658746_2.jpg', url:'https://rosebonica.bandcamp.com/album/tears-for-the-tea-maker'},
+  {title:'Mouthful of Concrete',          type:'Album',  color:'#4ECDC4', art:'https://f4.bcbits.com/img/a2953841961_2.jpg', url:'https://rosebonica.bandcamp.com/album/mouthful-of-concrete'},
+  {title:"Don't Let It Get To Your Head", type:'Album',  color:'#9D79BC', art:'https://f4.bcbits.com/img/a0818661184_2.jpg', url:'https://rosebonica.bandcamp.com/album/dont-let-it-get-to-your-head'},
+  {title:'Rosy Disposition',              type:'Album',  color:'#F39237', art:'https://f4.bcbits.com/img/a0932147851_2.jpg', url:'https://rosebonica.bandcamp.com/album/rosy-disposition'},
+  {title:'Weightless',                    type:'Single', color:'#E6F14A', art:'https://f4.bcbits.com/img/a2240640416_2.jpg', url:'https://rosebonica.bandcamp.com/track/weightless'},
+  {title:'BIRDINTHEHAND',                 type:'Single', color:'#FF729F', art:'https://f4.bcbits.com/img/a0312182935_2.jpg', url:'https://rosebonica.bandcamp.com/track/birdinthehand'},
+  {title:'Fear Tactics',                  type:'Single', color:'#F39237', art:'https://f4.bcbits.com/img/a2824127204_2.jpg', url:'https://rosebonica.bandcamp.com/track/fear-tactics'},
+  {title:'Distortion Klapping',           type:'Single', color:'#4ECDC4', art:'https://f4.bcbits.com/img/a1112202340_2.jpg', url:'https://rosebonica.bandcamp.com/track/distortion-klapping'},
+  {title:'DUCKDUCKNOOSE',                 type:'Single', color:'#9D79BC', art:'https://f4.bcbits.com/img/a3715021803_2.jpg', url:'https://rosebonica.bandcamp.com/track/duckducknoose'},
+  {title:'Life Gets Too Loud',            type:'Single', color:'#E6F14A', art:'https://f4.bcbits.com/img/a3112598154_2.jpg', url:'https://rosebonica.bandcamp.com/track/life-gets-too-loud'},
+  {title:'And The Agony Was Gone',        type:'Single', color:'#FF729F', art:'https://f4.bcbits.com/img/a2883656096_2.jpg', url:'https://rosebonica.bandcamp.com/track/and-the-agony-was-gone'},
+  {title:"I'm Going Home",                type:'Single', color:'#F39237', art:'https://f4.bcbits.com/img/a1947785434_2.jpg', url:'https://rosebonica.bandcamp.com/track/im-going-home-with-spirit-of-mandiya-by-dizu-plaatjies-and-colossus-by-idles'},
+  {title:'Looking All Around the House but Everything is from the Past', type:'Single', color:'#4ECDC4', art:'https://f4.bcbits.com/img/a3380863131_2.jpg', url:'https://rosebonica.bandcamp.com/track/looking-all-around-the-house-but-everything-is-from-the-past'},
+  {title:'You Look Ugly When You Cry',    type:'Single', color:'#9D79BC', art:'https://f4.bcbits.com/img/a3076982801_2.jpg', url:'https://rosebonica.bandcamp.com/track/you-look-ugly-when-you-cry'},
+];
+
+// ═══════════════════════════════════════════
+// RENDERER + SCENE + CAMERA
+// ═══════════════════════════════════════════
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d1e14);
+scene.fog = new THREE.Fog(0x0d1e14, 40, 130);
+
+const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 300);
+camera.position.set(0, 10, 16);
+camera.lookAt(0, 0, 0);
+
+// ═══════════════════════════════════════════
+// LIGHTING
+// ═══════════════════════════════════════════
+const ambLight = new THREE.AmbientLight(0x8fb8c0, 0.65);
+scene.add(ambLight);
+
+const sun = new THREE.DirectionalLight(0xfff8e8, 1.3);
+sun.position.set(40, 70, 30);
+sun.castShadow = true;
+sun.shadow.camera.left = sun.shadow.camera.bottom = -100;
+sun.shadow.camera.right = sun.shadow.camera.top = 100;
+sun.shadow.camera.far = 250;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.bias = -0.0003;
+scene.add(sun);
+
+const rimLight = new THREE.DirectionalLight(0x4a7fd4, 0.28);
+rimLight.position.set(-30, 15, -50);
+scene.add(rimLight);
+
+// ═══════════════════════════════════════════
+// GROUND
+// ═══════════════════════════════════════════
+const GROUND_SIZE = 220;
+const GROUND_SEGS = 70;
+const groundGeo = new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE, GROUND_SEGS, GROUND_SEGS);
+groundGeo.rotateX(-Math.PI / 2);
+
+// Displace vertices to make rolling hills
+const gPos = groundGeo.attributes.position;
+for (let i = 0; i < gPos.count; i++) {
+  const x = gPos.getX(i), z = gPos.getZ(i);
+  let y = Math.sin(x * 0.13 + 1.2) * Math.cos(z * 0.10) * 1.3
+        + Math.sin(x * 0.07 - 0.9) * Math.sin(z * 0.14 + 0.5) * 0.8
+        + Math.cos(x * 0.21 + z * 0.18) * 0.4
+        + (Math.random() - 0.5) * 0.35;
+  // Flatten spawn area
+  const d = Math.sqrt(x * x + z * z);
+  y *= Math.min(1, d / 9);
+  gPos.setY(i, y);
+}
+groundGeo.computeVertexNormals();
+
+const groundMesh = new THREE.Mesh(
+  groundGeo,
+  new THREE.MeshLambertMaterial({ color: 0x174822, flatShading: true })
+);
+groundMesh.receiveShadow = true;
+groundMesh.name = 'ground';
+scene.add(groundMesh);
+
+// Raycaster for ground height lookup
+const groundRay = new THREE.Raycaster();
+const DOWN = new THREE.Vector3(0, -1, 0);
+function groundY(x, z) {
+  groundRay.set(new THREE.Vector3(x, 25, z), DOWN);
+  const hits = groundRay.intersectObject(groundMesh);
+  return hits.length ? hits[0].point.y : 0;
+}
+
+// ═══════════════════════════════════════════
+// MOUNTAINS
+// ═══════════════════════════════════════════
+const MOUNTAIN_COLS = [0x1b5024, 0x143d1e, 0x225a2a, 0x0f3519, 0x194821, 0x28622e];
+
+function spawnMountain(x, z, heightScale) {
+  const grp = new THREE.Group();
+  const peaks = 2 + Math.floor(Math.random() * 3);
+  for (let p = 0; p < peaks; p++) {
+    const radius = 2.8 + Math.random() * 4;
+    const height = (7 + Math.random() * 11) * heightScale;
+    const segs   = 5 + Math.floor(Math.random() * 3);
+    const cg     = new THREE.ConeGeometry(radius, height, segs, 1);
+    // Roughen sides
+    const cp = cg.attributes.position;
+    for (let v = 0; v < cp.count; v++) {
+      if (cp.getY(v) < height * 0.88) {
+        cp.setX(v, cp.getX(v) + (Math.random() - 0.5) * 1.0);
+        cp.setZ(v, cp.getZ(v) + (Math.random() - 0.5) * 1.0);
+      }
+    }
+    cg.computeVertexNormals();
+    const col = MOUNTAIN_COLS[Math.floor(Math.random() * MOUNTAIN_COLS.length)];
+    const cone = new THREE.Mesh(cg, new THREE.MeshLambertMaterial({ color: col, flatShading: true }));
+    cone.position.set((Math.random() - 0.5) * radius, height / 2, (Math.random() - 0.5) * radius);
+    cone.castShadow = true;
+    grp.add(cone);
+
+    // Snow cap
+    if (height > 10 && Math.random() > 0.4) {
+      const capH = height * 0.18;
+      const capG = new THREE.ConeGeometry(radius * 0.32, capH, segs, 1);
+      const cap  = new THREE.Mesh(capG, new THREE.MeshLambertMaterial({ color: 0xddeef5, flatShading: true }));
+      cap.position.set(cone.position.x, height - capH * 0.3, cone.position.z);
+      grp.add(cap);
+    }
+  }
+  grp.position.set(x, groundY(x, z), z);
+  scene.add(grp);
+}
+
+[
+  [-32,-35,1.1],[ 22,-42,1.0],[-52,-22,0.9],[ 46,-28,1.2],[-22,-58,0.8],
+  [ 36,-52,1.1],[-62,-46,1.0],[ 12,-66,0.9],[-42, 12,0.7],[ 56,  6,1.0],
+  [-72,-12,1.2],[ 66,-37,0.9],[-16,-76,1.0],[ 28,-72,1.1],[-56,-62,0.8],
+  [  2,-82,0.9],[ 52,-67,1.0],[-38, 18,0.7],[ 42, 22,0.8],[-66, 28,0.9],
+  [ 18,-48,0.8],[-30,-16,0.7],[ 60,-50,1.1],[-48,-38,0.9],[  8,-92,0.8],
+].forEach(([x, z, s]) => spawnMountain(x, z, s));
+
+// ═══════════════════════════════════════════
+// TREES
+// ═══════════════════════════════════════════
+function spawnTree(x, z) {
+  const grp = new THREE.Group();
+  // Trunk
+  const t = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.13, 0.22, 1.3, 5),
+    new THREE.MeshLambertMaterial({ color: 0x3a2518, flatShading: true })
+  );
+  t.position.y = 0.65;
+  grp.add(t);
+  // Layered foliage
+  [[1.5, 0.85, 6, 0x236b2e],[2.05, 0.78, 6, 0x1b5225],[2.65, 0.7, 6, 0x205a2a]].forEach(([y, r, s, c]) => {
+    const cone = new THREE.Mesh(
+      new THREE.ConeGeometry(r, 0.95, s),
+      new THREE.MeshLambertMaterial({ color: c, flatShading: true })
+    );
+    cone.position.y = y;
+    grp.add(cone);
+  });
+  const gy = groundY(x, z);
+  grp.position.set(x, gy, z);
+  scene.add(grp);
+}
+
+for (let i = 0; i < 55; i++) {
+  const a = Math.random() * Math.PI * 2;
+  const d = 14 + Math.random() * 60;
+  spawnTree(Math.cos(a) * d, Math.sin(a) * d);
+}
+
+// Flowers/mushrooms as tiny accent shapes
+function spawnFlower(x, z, col) {
+  const grp = new THREE.Group();
+  const stem = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.04, 0.05, 0.4, 5),
+    new THREE.MeshLambertMaterial({ color: 0x2d7a35, flatShading: true })
+  );
+  stem.position.y = 0.2;
+  grp.add(stem);
+  const bloom = new THREE.Mesh(
+    new THREE.SphereGeometry(0.13, 5, 4),
+    new THREE.MeshLambertMaterial({ color: col, flatShading: true, emissive: new THREE.Color(col), emissiveIntensity: 0.15 })
+  );
+  bloom.position.y = 0.45;
+  grp.add(bloom);
+  const gy = groundY(x, z);
+  grp.position.set(x, gy, z);
+  scene.add(grp);
+}
+
+const flowerCols = [0xff729f, 0xe6f14a, 0x4ecdc4, 0xf39237, 0x9d79bc];
+for (let i = 0; i < 80; i++) {
+  const a = Math.random() * Math.PI * 2;
+  const d = 5 + Math.random() * 50;
+  spawnFlower(Math.cos(a) * d, Math.sin(a) * d, flowerCols[i % flowerCols.length]);
+}
+
+// ═══════════════════════════════════════════
+// CHARACTER — Rose Bonica
+// ═══════════════════════════════════════════
+const char = new THREE.Group();
+
+const skinM = new THREE.MeshLambertMaterial({ color: 0xf5c5a5, flatShading: true });
+const hairM = new THREE.MeshLambertMaterial({ color: 0xff5599, flatShading: true });
+const bodyM = new THREE.MeshLambertMaterial({ color: 0x2a0d55, flatShading: true });
+const legM  = new THREE.MeshLambertMaterial({ color: 0x180832, flatShading: true });
+const shoeM = new THREE.MeshLambertMaterial({ color: 0xff729f, flatShading: true });
+
+// Head
+const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.36, 6, 5), skinM);
+headMesh.position.y = 1.82;
+headMesh.castShadow = true;
+char.add(headMesh);
+
+// Hair bun / top
+const hairTop = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.5, 6), hairM);
+hairTop.position.set(0, 2.28, 0);
+hairTop.rotation.z = 0.07;
+hairTop.castShadow = true;
+char.add(hairTop);
+
+// Hair sides (wider sphere cap at back)
+const hairBack = new THREE.Mesh(new THREE.SphereGeometry(0.39, 6, 4, 0, Math.PI * 2, Math.PI * 0.42, Math.PI * 0.48), hairM);
+hairBack.position.set(0, 1.82, -0.06);
+char.add(hairBack);
+
+// Torso
+const torso = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.72, 0.28), bodyM);
+torso.position.y = 1.22;
+torso.castShadow = true;
+char.add(torso);
+
+// Arm pivot containers
+const leftArmPivot  = new THREE.Group(); leftArmPivot.position.set(-0.33, 1.52, 0); char.add(leftArmPivot);
+const rightArmPivot = new THREE.Group(); rightArmPivot.position.set( 0.33, 1.52, 0); char.add(rightArmPivot);
+
+const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.075, 0.6, 5), bodyM);
+armL.position.y = -0.3; armL.castShadow = true; leftArmPivot.add(armL);
+
+const armR = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.075, 0.6, 5), bodyM);
+armR.position.y = -0.3; armR.castShadow = true; rightArmPivot.add(armR);
+
+// Leg pivot containers
+const leftLegPivot  = new THREE.Group(); leftLegPivot.position.set(-0.15, 0.88, 0); char.add(leftLegPivot);
+const rightLegPivot = new THREE.Group(); rightLegPivot.position.set( 0.15, 0.88, 0); char.add(rightLegPivot);
+
+const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.09, 0.72, 5), legM);
+legL.position.y = -0.36; legL.castShadow = true; leftLegPivot.add(legL);
+
+const legR = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.09, 0.72, 5), legM);
+legR.position.y = -0.36; legR.castShadow = true; rightLegPivot.add(legR);
+
+// Shoes
+const shoeL = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.13, 0.3), shoeM);
+shoeL.position.set(0, -0.7, 0.05); leftLegPivot.add(shoeL);
+
+const shoeR = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.13, 0.3), shoeM);
+shoeR.position.set(0, -0.7, 0.05); rightLegPivot.add(shoeR);
+
+char.position.set(0, 0, 0);
+scene.add(char);
+
+// ═══════════════════════════════════════════
+// GEMS (19 floating octahedra)
+// ═══════════════════════════════════════════
+// Spread gems across the world map — in clusters near mountains
+const GEM_WORLD_POSITIONS = [
+  [  7,  -11], [-11,  -17], [ 17,  -21], [ -4,  -29], [ 23,  -15],
+  [-20,   -9], [  4,  -40], [-34,  -27], [ 30,  -37], [ 12,   -7],
+  [ -7,  -23], [ 20,  -46], [-16,  -37], [ 38,  -18], [-26,  -48],
+  [  9,  -53], [-40,  -14], [ 26,  -58], [-13,  -60],
+];
+
+const gemMeshes   = [];
+const gemLights   = [];
+const collected   = new Set();
+
+GEM_DATA.forEach((d, i) => {
+  const isAlbum = d.type === 'Album';
+  const radius  = isAlbum ? 0.44 : 0.28;
+  const col     = new THREE.Color(d.color);
+
+  const geo = new THREE.OctahedronGeometry(radius, 0);
+  const mat = new THREE.MeshLambertMaterial({
+    color: col, flatShading: true,
+    emissive: col, emissiveIntensity: 0.38,
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+
+  const [gx, gz] = GEM_WORLD_POSITIONS[i];
+  const gy = groundY(gx, gz) + (isAlbum ? 2.8 : 2.2);
+  mesh.position.set(gx, gy, gz);
+  mesh.castShadow = false;
+  mesh.userData = { idx: i, baseY: gy };
+
+  // Glow point light
+  const pl = new THREE.PointLight(col, isAlbum ? 1.5 : 0.9, isAlbum ? 6 : 4);
+  pl.position.copy(mesh.position);
+  scene.add(pl);
+
+  scene.add(mesh);
+  gemMeshes.push(mesh);
+  gemLights.push(pl);
+});
+
+// ═══════════════════════════════════════════
+// INPUT
+// ═══════════════════════════════════════════
+const keys = {};
+window.addEventListener('keydown', e => { keys[e.code] = true; });
+window.addEventListener('keyup',   e => { keys[e.code] = false; });
+
+let clickTarget    = null;  // Vector3 or null
+let cardOpen       = false;
+let hintDismissed  = false;
+
+function dismissHint() {
+  if (!hintDismissed) {
+    hintDismissed = true;
+    document.getElementById('controls-hint').classList.add('fade');
+  }
+}
+
+// Click-to-move
+const clickRay = new THREE.Raycaster();
+const clickMouse = new THREE.Vector2();
+renderer.domElement.addEventListener('pointerdown', e => {
+  if (cardOpen) return;
+  clickMouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  clickMouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  clickRay.setFromCamera(clickMouse, camera);
+  const hits = clickRay.intersectObject(groundMesh);
+  if (hits.length) {
+    clickTarget = hits[0].point.clone();
+    dismissHint();
+  }
+});
+
+// ═══════════════════════════════════════════
+// GEM CARD UI
+// ═══════════════════════════════════════════
+const gemCard     = document.getElementById('gem-card');
+const gemCardArt  = document.getElementById('gem-card-art');
+const gemCardType = document.getElementById('gem-card-type');
+const gemCardName = document.getElementById('gem-card-title');
+const gemCardLink = document.getElementById('gem-card-link');
+const gemCountEl  = document.getElementById('gem-count');
+const proxRing    = document.getElementById('proximity-ring');
+
+function openCard(idx) {
+  const d = GEM_DATA[idx];
+  gemCardArt.innerHTML = d.art
+    ? `<img src="${d.art}" alt="${d.title}">`
+    : `<span class="card-art-ph">artwork coming soon</span>`;
+  gemCardType.textContent = d.type;
+  gemCardName.textContent = d.title;
+  gemCardLink.href = d.url;
+  gemCard.classList.remove('visible');
+  void gemCard.offsetWidth;
+  gemCard.classList.add('visible');
+  cardOpen = true;
+}
+
+function closeCard() {
+  gemCard.classList.remove('visible');
+  cardOpen = false;
+}
+
+document.getElementById('gem-card-close').addEventListener('click', closeCard);
+window.addEventListener('keydown', e => { if (e.key === 'Escape') closeCard(); });
+
+// ═══════════════════════════════════════════
+// ZONES (atmosphere shifts)
+// ═══════════════════════════════════════════
+const ZONES = [
+  { name:'THE VALLEY',       cx:  0, cz:  0, r:16, fog:0x0d1e14, amb:0x8fb8c0 },
+  { name:'THE DEEP GARDEN',  cx:  0, cz:-32, r:20, fog:0x0d1a20, amb:0x6a9ec8 },
+  { name:'THE PEAKS',        cx:-28, cz:-28, r:22, fog:0x14102a, amb:0xa070d8 },
+  { name:'THE AMBER HILLS',  cx: 26, cz:-46, r:22, fog:0x1c1008, amb:0xd88844 },
+  { name:'THE FAR EDGE',     cx:  2, cz:-62, r:18, fog:0x1a1808, amb:0xc8c03a },
+];
+
+let curZone = -1;
+const zoneLabelEl = document.getElementById('zone-label');
+let zoneFadeTimer = null;
+
+// Smooth fog + ambient transitions
+const fogTarget  = new THREE.Color(0x0d1e14);
+const ambTarget  = new THREE.Color(0x8fb8c0);
+
+function checkZones(x, z) {
+  for (let i = 0; i < ZONES.length; i++) {
+    const z_ = ZONES[i];
+    if (Math.hypot(x - z_.cx, z - z_.cz) < z_.r) {
+      if (curZone !== i) {
+        curZone = i;
+        fogTarget.set(z_.fog);
+        ambTarget.set(z_.amb);
+        zoneLabelEl.textContent = z_.name;
+        zoneLabelEl.classList.add('show');
+        clearTimeout(zoneFadeTimer);
+        zoneFadeTimer = setTimeout(() => zoneLabelEl.classList.remove('show'), 2600);
+      }
+      return;
+    }
+  }
+  if (curZone !== 0) {
+    curZone = 0;
+    fogTarget.set(ZONES[0].fog);
+    ambTarget.set(ZONES[0].amb);
+  }
+}
+
+// ═══════════════════════════════════════════
+// COLLECT PARTICLES
+// ═══════════════════════════════════════════
+const particles = [];
+
+function spawnParticles(pos, hexColor) {
+  const col = new THREE.Color(hexColor);
+  for (let i = 0; i < 18; i++) {
+    const geo = new THREE.SphereGeometry(0.06 + Math.random() * 0.1, 4, 4);
+    const mat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 1 });
+    const m   = new THREE.Mesh(geo, mat);
+    m.position.copy(pos);
+    const spd = 4 + Math.random() * 5;
+    const ang = Math.random() * Math.PI * 2;
+    m.userData.vel = new THREE.Vector3(
+      Math.cos(ang) * spd, 1.5 + Math.random() * 5, Math.sin(ang) * spd
+    );
+    m.userData.life = 1.0;
+    scene.add(m);
+    particles.push(m);
+  }
+}
+
+function tickParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.userData.vel.y -= 9 * dt;
+    p.position.addScaledVector(p.userData.vel, dt);
+    p.userData.life -= dt * 1.6;
+    p.material.opacity = Math.max(0, p.userData.life);
+    if (p.userData.life <= 0) {
+      scene.remove(p);
+      particles.splice(i, 1);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════
+// COLLECT GEM
+// ═══════════════════════════════════════════
+function collectGem(idx) {
+  if (collected.has(idx)) return;
+  collected.add(idx);
+
+  const mesh = gemMeshes[idx];
+  const light = gemLights[idx];
+  spawnParticles(mesh.position.clone(), GEM_DATA[idx].color);
+  scene.remove(mesh);
+  scene.remove(light);
+
+  gemCountEl.textContent = collected.size;
+  openCard(idx);
+}
+
+// ═══════════════════════════════════════════
+// STARS (static billboard points)
+// ═══════════════════════════════════════════
+(function makeStars() {
+  const starGeo = new THREE.BufferGeometry();
+  const verts = [];
+  for (let i = 0; i < 900; i++) {
+    const theta = Math.random() * Math.PI * 2;
+    const phi   = Math.acos(2 * Math.random() - 1);
+    const r     = 180 + Math.random() * 20;
+    verts.push(r * Math.sin(phi) * Math.cos(theta), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(theta));
+  }
+  starGeo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.35, sizeAttenuation: true });
+  scene.add(new THREE.Points(starGeo, starMat));
+})();
+
+// ═══════════════════════════════════════════
+// CAMERA TRACKING
+// ═══════════════════════════════════════════
+const camCur    = new THREE.Vector3(0, 10, 16);
+const camLookAt = new THREE.Vector3(0, 1.2, 0);
+const CAM_OFF   = new THREE.Vector3(0, 8, 13);
+
+// ═══════════════════════════════════════════
+// MAIN LOOP
+// ═══════════════════════════════════════════
+const clock = new THREE.Clock();
+let walkPhase = 0;
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t  = clock.elapsedTime;
+
+  // ─── Movement ───────────────────────────
+  const move = new THREE.Vector3();
+
+  if (keys['KeyW'] || keys['ArrowUp'])    move.z -= 1;
+  if (keys['KeyS'] || keys['ArrowDown'])  move.z += 1;
+  if (keys['KeyA'] || keys['ArrowLeft'])  move.x -= 1;
+  if (keys['KeyD'] || keys['ArrowRight']) move.x += 1;
+
+  const SPEED = 5.8;
+  let isWalking = false;
+
+  if (move.lengthSq() > 0) {
+    move.normalize().multiplyScalar(SPEED * dt);
+    char.position.add(move);
+    char.rotation.y = Math.atan2(move.x, move.z);
+    clickTarget = null;
+    isWalking   = true;
+    dismissHint();
+  } else if (clickTarget) {
+    const toTarget = new THREE.Vector3().subVectors(clickTarget, char.position);
+    toTarget.y = 0;
+    const dist = toTarget.length();
+    if (dist > 0.35) {
+      toTarget.normalize();
+      char.position.addScaledVector(toTarget, SPEED * dt);
+      char.rotation.y = Math.atan2(toTarget.x, toTarget.z);
+      isWalking = true;
+    } else {
+      clickTarget = null;
+    }
+  }
+
+  // Clamp to world bounds
+  char.position.x = Math.max(-95, Math.min(95, char.position.x));
+  char.position.z = Math.max(-95, Math.min(95, char.position.z));
+
+  // Snap to ground
+  char.position.y = groundY(char.position.x, char.position.z);
+
+  // ─── Walk animation ──────────────────────
+  if (isWalking) {
+    walkPhase += dt * 9;
+    leftArmPivot.rotation.x  =  Math.sin(walkPhase) * 0.6;
+    rightArmPivot.rotation.x = -Math.sin(walkPhase) * 0.6;
+    leftLegPivot.rotation.x  = -Math.sin(walkPhase) * 0.52;
+    rightLegPivot.rotation.x =  Math.sin(walkPhase) * 0.52;
+    // Step bob
+    char.position.y += Math.abs(Math.sin(walkPhase)) * 0.055;
+  } else {
+    // Ease back to rest
+    leftArmPivot.rotation.x  *= 0.82;
+    rightArmPivot.rotation.x *= 0.82;
+    leftLegPivot.rotation.x  *= 0.82;
+    rightLegPivot.rotation.x *= 0.82;
+    // Idle breathe
+    torso.position.y = 1.22 + Math.sin(t * 1.3) * 0.016;
+  }
+
+  // ─── Camera follow ────────────────────────
+  // Offset rotated behind character's facing direction
+  const rotOff = CAM_OFF.clone().applyEuler(new THREE.Euler(0, char.rotation.y, 0));
+  const desiredCam = char.position.clone().add(rotOff);
+  camCur.lerp(desiredCam, 0.065);
+  camera.position.copy(camCur);
+
+  const lookTarget = new THREE.Vector3(char.position.x, char.position.y + 1.4, char.position.z);
+  camLookAt.lerp(lookTarget, 0.09);
+  camera.lookAt(camLookAt);
+
+  // ─── Gems: float, spin, proximity ────────
+  let nearestDist = Infinity;
+  gemMeshes.forEach((gem, i) => {
+    if (collected.has(i)) return;
+    gem.rotation.y += dt * (1.4 + i * 0.04);
+    gem.position.y  = gem.userData.baseY + Math.sin(t * 1.7 + i * 0.65) * 0.25;
+    gemLights[i].position.copy(gem.position);
+    gemLights[i].intensity = 0.6 + Math.sin(t * 2.0 + i * 1.1) * 0.45;
+
+    const dx = char.position.x - gem.position.x;
+    const dz = char.position.z - gem.position.z;
+    const d  = Math.sqrt(dx * dx + dz * dz);
+    if (d < nearestDist) nearestDist = d;
+    if (d < 2.4 && !cardOpen) collectGem(i);
+  });
+
+  // Proximity ring
+  if (nearestDist < 6 && collected.size < 19) {
+    proxRing.classList.add('active');
+  } else {
+    proxRing.classList.remove('active');
+  }
+
+  // ─── Particles ───────────────────────────
+  tickParticles(dt);
+
+  // ─── Zone + atmosphere ───────────────────
+  checkZones(char.position.x, char.position.z);
+  scene.fog.color.lerp(fogTarget, 0.015);
+  ambLight.color.lerp(ambTarget, 0.015);
+
+  renderer.render(scene, camera);
+}
+
+// ═══════════════════════════════════════════
+// RESIZE
+// ═══════════════════════════════════════════
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ═══════════════════════════════════════════
+// LOADING → START
+// ═══════════════════════════════════════════
+const loadBar = document.getElementById('load-bar');
+const loadEl  = document.getElementById('loading');
+let pct = 0;
+const loader = setInterval(() => {
+  pct = Math.min(pct + Math.random() * 22 + 6, 100);
+  loadBar.style.width = pct + '%';
+  if (pct >= 100) {
+    clearInterval(loader);
+    setTimeout(() => {
+      loadEl.style.opacity = '0';
+      setTimeout(() => { loadEl.style.display = 'none'; animate(); }, 700);
+    }, 150);
+  }
+}, 60);
+</script>
+</body>
+</html>
