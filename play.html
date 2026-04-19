@@ -59,9 +59,27 @@ canvas { display:block; }
   border:1.5px solid rgba(255,255,255,0.18);
   background:rgba(0,0,0,0.45); overflow:hidden;
 }
-/* On touch devices push minimap above joystick */
+/* ── MOBILE OVERRIDES ── */
 @media (pointer:coarse) {
+  /* Minimap above joystick */
   #minimap-wrap { bottom:140px; }
+
+  /* Badge strip: stop high enough to never reach minimap */
+  #badge-strip {
+    max-height: calc(100vh - 270px);
+    right: 10px;
+  }
+
+  /* Review panel: anchor top-right, well clear of minimap + joystick */
+  #review-panel {
+    bottom: auto;
+    top: 48px;
+    right: 10px;
+    width: min(230px, calc(100vw - 56px));  /* won't overlap minimap */
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+  }
+  #review-panel .review-art { aspect-ratio: 2/1; }  /* shorter art on mobile */
 }
 #minimap {
   width:100px; height:100px; border-radius:50%;
@@ -233,18 +251,49 @@ canvas { display:block; }
 .review-collapse:hover { color:#fff; }
 #review-panel.collapsed .review-collapse { transform:rotate(180deg); }
 
-/* ── SOUND BUTTON (mobile tap-to-enable) ── */
+/* ── SOUND BUTTON (mobile tap-to-enable) — sits just above controls hint ── */
 #sound-btn {
-  position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+  position:fixed; bottom:54px; left:50%; transform:translateX(-50%);
   z-index:400; border:1px solid rgba(78,205,196,.5);
   background:rgba(78,205,196,.15); border-radius:100px;
   font:700 9px/1 Arial; letter-spacing:.2em; text-transform:uppercase;
   color:rgba(255,255,255,.8); padding:9px 22px; cursor:pointer;
-  transition:opacity .5s, background .2s;
+  transition:opacity .5s, background .2s; white-space:nowrap;
   box-shadow:0 0 18px 2px rgba(78,205,196,.18);
   animation:hintPulse 2.4s ease-in-out infinite;
 }
 #sound-btn:hover, #sound-btn:active { background:rgba(78,205,196,.35); }
+
+/* ── INTRO SPLASH ── */
+#intro-splash {
+  position:fixed; inset:0; z-index:800; pointer-events:none;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; padding:32px 40px;
+  background:rgba(8,4,18,0.65); backdrop-filter:blur(3px);
+  animation:introIn .9s ease .4s both;
+}
+#intro-splash.out { animation:introOut .9s ease forwards; }
+@keyframes introIn  { from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none} }
+@keyframes introOut { from{opacity:1} to{opacity:0; transform:translateY(-6px)} }
+.intro-eye {
+  font:800 8px/1 Arial; letter-spacing:.38em; text-transform:uppercase;
+  color:#4ECDC4; margin-bottom:16px;
+}
+.intro-title {
+  font:900 26px/1.15 Arial; color:#fff; margin-bottom:20px;
+  text-shadow:0 0 40px rgba(157,121,188,.6);
+}
+.intro-body {
+  font:400 13px/1.85 Arial; color:rgba(255,255,255,.52);
+  max-width:320px;
+}
+.intro-body em {
+  font-style:normal; color:rgba(255,255,255,.8);
+}
+@media (max-width:500px) {
+  .intro-title { font-size:20px; }
+  .intro-body  { font-size:12px; }
+}
 
 /* ── LOADING ── */
 #loading {
@@ -265,6 +314,19 @@ canvas { display:block; }
   <h1>Rose Bonica</h1>
   <div id="load-bar-wrap"><div id="load-bar"></div></div>
   <p>Loading garden of gems…</p>
+</div>
+
+<!-- Intro splash (auto-dismisses after ~5s) -->
+<div id="intro-splash">
+  <p class="intro-eye">rose bonica</p>
+  <h2 class="intro-title">garden of gems</h2>
+  <p class="intro-body">
+    <em>nineteen releases scattered through the garden.</em><br>
+    walk into a gem to collect it — each one is something real,<br>
+    made from her studio overlooking the ocean<br>
+    in hout bay, south africa.<br><br>
+    explore. listen. find them all.
+  </p>
 </div>
 
 <!-- HUD -->
@@ -1609,7 +1671,16 @@ const loader = setInterval(() => {
     clearInterval(loader);
     setTimeout(() => {
       loadEl.style.opacity = '0';
-      setTimeout(() => { loadEl.style.display = 'none'; animate(); }, 700);
+      setTimeout(() => {
+        loadEl.style.display = 'none';
+        animate();
+        // Auto-dismiss intro splash after 5 seconds
+        const introEl = document.getElementById('intro-splash');
+        setTimeout(() => {
+          introEl.classList.add('out');
+          setTimeout(() => introEl.remove(), 900);
+        }, 5000);
+      }, 700);
     }, 150);
   }
 }, 60);
