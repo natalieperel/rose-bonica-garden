@@ -20,9 +20,9 @@
   }
   .logo-wrap img{width:100%;height:auto;display:block;
     filter:drop-shadow(0 3px 18px rgba(0,0,0,0.3));}
-  .cursor{position:fixed;width:12px;height:12px;border-radius:50%;
+  .cursor{position:fixed;left:0;top:0;width:12px;height:12px;border-radius:50%;
     background:radial-gradient(circle,#fff 30%,#ff2d78);
-    pointer-events:none;z-index:9999;transform:translateY(-50%);
+    pointer-events:none;z-index:9999;will-change:transform;
     box-shadow:0 0 8px #ff2d78,0 0 20px #ff2d7866;}
   @media(hover:none){.cursor{display:none;}}
 
@@ -109,10 +109,16 @@
   #gem-card .card-link:hover{background:rgba(255,45,120,0.45);}
   #gem-card .card-close{position:absolute;top:10px;right:12px;background:none;border:none;color:rgba(255,255,255,0.4);font-size:16px;cursor:pointer;padding:2px 4px;font-family:Arial,sans-serif;}
   #gem-card .card-close:hover{color:rgba(255,255,255,0.85);}
+  /* ── SCROLL PROMPT ───────────────────────────────────── */
+  #scroll-prompt{position:fixed;bottom:32px;left:0;right:0;text-align:center;z-index:150;pointer-events:none;font:800 10px/1 Arial,sans-serif;letter-spacing:0.22em;text-transform:uppercase;color:rgba(255,255,255,0.6);text-shadow:0 1px 6px rgba(0,0,0,0.5);animation:scrollPulse 2.4s ease-in-out infinite;transition:opacity 0.6s;}
+  #scroll-prompt.hidden{opacity:0;}
+  @keyframes scrollPulse{0%,100%{opacity:0.4;}50%{opacity:0.9;}}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
+
+<div id="scroll-prompt">scroll down to discover</div>
 
 <!-- GEM CARD -->
 <div id="gem-card">
@@ -129,7 +135,7 @@
 <div class="gem gem-album hidden" data-idx="2"  style="left:64%;top:13%"></div>
 <div class="gem gem-album hidden" data-idx="3"  style="left:18%;top:14%"></div>
 <div class="gem gem-album hidden" data-idx="4"  style="left:78%;top:15%"></div>
-<div class="gem gem-album hidden" data-idx="5"  style="left:52%;top:17%"></div>
+<div class="gem gem-album hidden" data-idx="5"  style="left:44%;top:12%"></div>
 <div class="gem gem-album hidden" data-idx="6"  style="left:33%;top:15%"></div>
 <div class="gem gem-album hidden" data-idx="7"  style="left:86%;top:19%"></div>
 <div class="gem gem-album hidden" data-idx="8"  style="left:65%;top:25%"></div>
@@ -165,7 +171,7 @@ window.addEventListener('resize',()=>{resize();build();});
 
 document.addEventListener('mousemove',e=>{
   mxRaw=e.clientX;
-  cur.style.left=e.clientX+'px';cur.style.top=e.clientY+'px';
+  cur.style.transform=`translate(${e.clientX-6}px,${e.clientY-6}px)`;
 });
 document.addEventListener('click',e=>{if(typeof openGemIdx!=='undefined'&&openGemIdx>=0&&!document.getElementById('gem-card').contains(e.target))closeGemCard();burst(e.clientX,e.clientY);});
 document.addEventListener('touchstart',e=>{
@@ -563,25 +569,25 @@ loop();
 
 // ── GEMS ────────────────────────────────────────────────
 const GEM_DATA=[
-  {title:'Sleep Tight Baby',type:'Album',url:'https://rosebonica.bandcamp.com/album/sleep-tight-baby'},
-  {title:'Quicksand / Fear Me',type:'Album',url:'https://rosebonica.bandcamp.com/album/quicksand-fear-me'},
-  {title:'Nothing Lasts Forever',type:'Album',url:'https://rosebonica.bandcamp.com/album/nothing-lasts-forever'},
-  {title:'Waiting For Change',type:'Album',url:'https://rosebonica.bandcamp.com/album/waiting-for-change'},
-  {title:'Send Forgiveness / Disengage',type:'Album',url:'https://rosebonica.bandcamp.com/album/send-forgiveness-disengage'},
-  {title:'Tears for the Tea Maker',type:'Album',url:'https://rosebonica.bandcamp.com/album/tears-for-the-tea-maker'},
-  {title:'Mouthful of Concrete',type:'Album',url:'https://rosebonica.bandcamp.com/album/mouthful-of-concrete'},
-  {title:"Don't Let It Get To Your Head",type:'Album',url:'https://rosebonica.bandcamp.com/album/dont-let-it-get-to-your-head'},
-  {title:'Rosy Disposition',type:'Album',url:'https://rosebonica.bandcamp.com/album/rosy-disposition'},
-  {title:'Weightless',type:'Single',url:'https://rosebonica.bandcamp.com/track/weightless'},
-  {title:'BIRDINTHEHAND',type:'Single',url:'https://rosebonica.bandcamp.com/track/birdinthehand'},
-  {title:'Fear Tactics',type:'Single',url:'https://rosebonica.bandcamp.com/track/fear-tactics'},
-  {title:'Distortion Klapping',type:'Single',url:'https://rosebonica.bandcamp.com/track/distortion-klapping'},
-  {title:'DUCKDUCKNOOSE',type:'Single',url:'https://rosebonica.bandcamp.com/track/duckducknoose'},
-  {title:'Life Gets Too Loud',type:'Single',url:'https://rosebonica.bandcamp.com/track/life-gets-too-loud'},
-  {title:'And The Agony Was Gone',type:'Single',url:'https://rosebonica.bandcamp.com/track/and-the-agony-was-gone'},
-  {title:"I'm Going Home",type:'Single',url:'https://rosebonica.bandcamp.com/track/im-going-home-with-spirit-of-mandiya-by-dizu-plaatjies-and-colossus-by-idles'},
-  {title:'Looking All Around the House but Everything is from the Past',type:'Single',url:'https://rosebonica.bandcamp.com/track/looking-all-around-the-house-but-everything-is-from-the-past'},
-  {title:'You Look Ugly When You Cry',type:'Single',url:'https://rosebonica.bandcamp.com/track/you-look-ugly-when-you-cry'},
+  {title:'Sleep Tight Baby',type:'Album',url:'https://rosebonica.bandcamp.com/album/sleep-tight-baby',color:'#4ECDC4'},
+  {title:'Quicksand / Fear Me',type:'Album',url:'https://rosebonica.bandcamp.com/album/quicksand-fear-me',color:'#A30B37'},
+  {title:'Nothing Lasts Forever',type:'Album',url:'https://rosebonica.bandcamp.com/album/nothing-lasts-forever',color:'#9D79BC'},
+  {title:'Waiting For Change',type:'Album',url:'https://rosebonica.bandcamp.com/album/waiting-for-change',color:'#F39237'},
+  {title:'Send Forgiveness / Disengage',type:'Album',url:'https://rosebonica.bandcamp.com/album/send-forgiveness-disengage',color:'#E6F14A'},
+  {title:'Tears for the Tea Maker',type:'Album',url:'https://rosebonica.bandcamp.com/album/tears-for-the-tea-maker',color:'#A30B37'},
+  {title:'Mouthful of Concrete',type:'Album',url:'https://rosebonica.bandcamp.com/album/mouthful-of-concrete',color:'#4ECDC4'},
+  {title:"Don't Let It Get To Your Head",type:'Album',url:'https://rosebonica.bandcamp.com/album/dont-let-it-get-to-your-head',color:'#9D79BC'},
+  {title:'Rosy Disposition',type:'Album',url:'https://rosebonica.bandcamp.com/album/rosy-disposition',color:'#F39237'},
+  {title:'Weightless',type:'Single',url:'https://rosebonica.bandcamp.com/track/weightless',color:'#E6F14A'},
+  {title:'BIRDINTHEHAND',type:'Single',url:'https://rosebonica.bandcamp.com/track/birdinthehand',color:'#A30B37'},
+  {title:'Fear Tactics',type:'Single',url:'https://rosebonica.bandcamp.com/track/fear-tactics',color:'#F39237'},
+  {title:'Distortion Klapping',type:'Single',url:'https://rosebonica.bandcamp.com/track/distortion-klapping',color:'#4ECDC4'},
+  {title:'DUCKDUCKNOOSE',type:'Single',url:'https://rosebonica.bandcamp.com/track/duckducknoose',color:'#9D79BC'},
+  {title:'Life Gets Too Loud',type:'Single',url:'https://rosebonica.bandcamp.com/track/life-gets-too-loud',color:'#E6F14A'},
+  {title:'And The Agony Was Gone',type:'Single',url:'https://rosebonica.bandcamp.com/track/and-the-agony-was-gone',color:'#A30B37'},
+  {title:"I'm Going Home",type:'Single',url:'https://rosebonica.bandcamp.com/track/im-going-home-with-spirit-of-mandiya-by-dizu-plaatjies-and-colossus-by-idles',color:'#F39237'},
+  {title:'Looking All Around the House but Everything is from the Past',type:'Single',url:'https://rosebonica.bandcamp.com/track/looking-all-around-the-house-but-everything-is-from-the-past',color:'#4ECDC4'},
+  {title:'You Look Ugly When You Cry',type:'Single',url:'https://rosebonica.bandcamp.com/track/you-look-ugly-when-you-cry',color:'#9D79BC'},
 ];
 const REVEAL_ORDER=[0,1,2,3,4,9,5,10,6,16,7,11,8,15,12,13,17,14,18];
 const SCROLL_PER_GEM=180;
@@ -589,7 +595,7 @@ const ALBUM_SVG=`<svg viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg"><po
 const SINGLE_SVG=`<svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><polygon points="9,1 15,6 13,15 5,15 3,6" fill="currentColor" opacity="0.9"/><polygon points="9,1 15,6 9,5" fill="white" opacity="0.35"/><polygon points="9,5 15,6 13,15 9,10" fill="currentColor" opacity="0.65"/><polygon points="9,5 3,6 5,15 9,10" fill="currentColor" opacity="0.5"/></svg>`;
 const gemEls=Array.from(document.querySelectorAll('.gem'));
 const gemCard=document.getElementById('gem-card');
-gemEls.forEach(el=>{el.innerHTML=el.classList.contains('gem-album')?ALBUM_SVG:SINGLE_SVG;});
+gemEls.forEach((el,i)=>{el.innerHTML=el.classList.contains('gem-album')?ALBUM_SVG:SINGLE_SVG;el.style.color=GEM_DATA[i].color;});
 
 let scrollAccum=0,revealedCount=0,openGemIdx=-1;
 
@@ -611,10 +617,12 @@ function checkReveal(){
   }
 }
 
+const scrollPrompt=document.getElementById('scroll-prompt');
 window.addEventListener('wheel',e=>{
   if(e.deltaY<=0)return;
   if(openGemIdx>=0)closeGemCard();
   scrollAccum+=e.deltaY;
+  scrollPrompt.classList.add('hidden');
   checkReveal();
 },{passive:true});
 
@@ -623,14 +631,14 @@ document.addEventListener('touchstart',e=>{tsy=e.touches[0].clientY;},{passive:t
 document.addEventListener('touchmove',e=>{
   if(tsy===null)return;
   const dy=tsy-e.touches[0].clientY;
-  if(dy>0){scrollAccum+=dy*1.5;checkReveal();}
+  if(dy>0){scrollAccum+=dy*1.5;scrollPrompt.classList.add('hidden');checkReveal();}
   tsy=e.touches[0].clientY;
 },{passive:true});
 
 function openGemCard(idx,el){
   const d=GEM_DATA[idx];
   const artEl=document.getElementById('gem-card-art');
-  artEl.style.setProperty('--card-art-color',d.type==='Album'?'rgba(126,232,250,0.18)':'rgba(255,170,212,0.18)');
+  artEl.style.setProperty('--card-art-color',d.color+'33');
   artEl.textContent='artwork coming soon';
   document.getElementById('gem-card-type').textContent=d.type;
   document.getElementById('gem-card-title').textContent=d.title;
@@ -664,7 +672,7 @@ gemEls.forEach((el,idx)=>{
 });
 
 document.getElementById('gem-card-close').addEventListener('click',e=>{e.stopPropagation();closeGemCard();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeGemCard();});
+window.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();closeGemCard();}});
 </script>
 
 <nav class="nav-links">
