@@ -940,9 +940,15 @@ const charVel = new THREE.Vector3();
 const ZONE_FREQS = [110, 98, 87, 123, 131, 164]; // Hz per zone (drone root note)
 
 function initAudio() {
-  if (audioCtx) return;
+  // If already created but suspended (iOS Safari does this), just resume
+  if (audioCtx) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return;
+  }
   try {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // iOS requires an explicit resume inside the gesture handler
+    audioCtx.resume();
 
     // Master game audio gain — duck this when Bandcamp player is open
     masterGameGain = audioCtx.createGain();
@@ -1020,10 +1026,18 @@ function playCollectSound() {
   osc.stop(audioCtx.currentTime + 0.5);
 }
 
-// Init audio on first user gesture
+// Init audio on first user gesture, then keep resuming on every touch
+// (iOS suspends AudioContext whenever page loses focus)
 ['pointerdown','keydown','touchstart'].forEach(ev =>
   window.addEventListener(ev, initAudio, {once:true, passive:true})
 );
+// Persistent resume handler for iOS background/foreground cycles
+window.addEventListener('touchstart', () => {
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}, { passive: true });
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+});
 
 // ═══════════════════════════════════════════════════════════
 // MINIMAP
