@@ -210,6 +210,19 @@ canvas { display:block; }
 #review-player { margin-bottom:10px; border-radius:6px; overflow:hidden; }
 #review-player iframe { display:block; border:0; width:100%; height:42px; border-radius:6px; }
 
+/* ── SOUND BUTTON (mobile tap-to-enable) ── */
+#sound-btn {
+  position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+  z-index:400; border:1px solid rgba(78,205,196,.5);
+  background:rgba(78,205,196,.15); border-radius:100px;
+  font:700 9px/1 Arial; letter-spacing:.2em; text-transform:uppercase;
+  color:rgba(255,255,255,.8); padding:9px 22px; cursor:pointer;
+  transition:opacity .5s, background .2s;
+  box-shadow:0 0 18px 2px rgba(78,205,196,.18);
+  animation:hintPulse 2.4s ease-in-out infinite;
+}
+#sound-btn:hover, #sound-btn:active { background:rgba(78,205,196,.35); }
+
 /* ── LOADING ── */
 #loading {
   position:fixed; inset:0; z-index:1000; background:#0a1a0e;
@@ -263,6 +276,9 @@ canvas { display:block; }
   <div id="review-player"></div>
   <a class="card-link" id="review-link" href="#" target="_blank">Open on Bandcamp &#8599;</a>
 </div>
+
+<!-- Sound enable button (prominent on mobile, auto-hides after tap) -->
+<button id="sound-btn" onclick="initAudio()">♪ tap for sound</button>
 
 <!-- Mobile Joystick -->
 <div id="joystick-wrap">
@@ -934,74 +950,93 @@ document.getElementById('review-close').addEventListener('click', e => { e.stopP
 // ═══════════════════════════════════════════════════════════
 let audioCtx = null, droneOsc = null, shimmerGain = null, masterGameGain = null;
 let gemVoices = null;
+let audioReady = false;
 let autoCloseTimer = null;
 const charVel = new THREE.Vector3();
 
 const ZONE_FREQS = [110, 98, 87, 123, 131, 164]; // Hz per zone (drone root note)
 
+// Called only once the AudioContext is provably running
+function setupAudio() {
+  if (audioReady || !audioCtx) return;
+  audioReady = true;
+
+  // Master gain (duck when Bandcamp player opens)
+  masterGameGain = audioCtx.createGain();
+  masterGameGain.gain.value = 1.0;
+  masterGameGain.connect(audioCtx.destination);
+
+  // Deep drone — boosted for mobile speakers
+  droneOsc = audioCtx.createOscillator();
+  droneOsc.type = 'sine';
+  droneOsc.frequency.value = 110;
+  const droneGain = audioCtx.createGain();
+  droneGain.gain.value = 0.06;
+  droneOsc.connect(droneGain).connect(masterGameGain);
+  droneOsc.start();
+
+  // Mid harmonic
+  const midOsc = audioCtx.createOscillator();
+  midOsc.type = 'triangle';
+  midOsc.frequency.value = 165;
+  const midGain = audioCtx.createGain();
+  midGain.gain.value = 0.03;
+  midOsc.connect(midGain).connect(masterGameGain);
+  midOsc.start();
+
+  // Shimmer pad
+  const shimOsc = audioCtx.createOscillator();
+  shimOsc.type = 'sine';
+  shimOsc.frequency.value = 440;
+  shimmerGain = audioCtx.createGain();
+  shimmerGain.gain.value = 0.015;
+  shimOsc.connect(shimmerGain).connect(masterGameGain);
+  shimOsc.start();
+
+  // LFO tremolo
+  const lfo = audioCtx.createOscillator();
+  lfo.frequency.value = 0.22;
+  const lfoGain = audioCtx.createGain();
+  lfoGain.gain.value = 0.015;
+  lfo.connect(lfoGain).connect(shimmerGain.gain);
+  lfo.start();
+
+  // 19 gem proximity voices
+  const FREQS = [130.8,146.8,164.8,196,220,261.6,293.7,329.6,392,440,
+                 523.3,587.3,659.3,784,880,311,415,466,987.8];
+  gemVoices = GEM_DATA.map((d, i) => {
+    const g = audioCtx.createGain(); g.gain.value = 0; g.connect(masterGameGain);
+    const o1 = audioCtx.createOscillator(); o1.type='sine'; o1.frequency.value=FREQS[i];
+    o1.connect(g); o1.start();
+    const o2 = audioCtx.createOscillator(); o2.type='sine'; o2.frequency.value=FREQS[i]*1.5;
+    const g2 = audioCtx.createGain(); g2.gain.value=0.38; o2.connect(g2).connect(g); o2.start();
+    return { g, alive:true };
+  });
+
+  // Hide the sound hint button
+  const sb = document.getElementById('sound-btn');
+  if (sb) { sb.style.opacity='0'; setTimeout(()=>sb.remove(), 600); }
+}
+
 function initAudio() {
-  // If already created but suspended (iOS Safari does this), just resume
-  if (audioCtx) {
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    return;
-  }
   try {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    // iOS requires an explicit resume inside the gesture handler
-    audioCtx.resume();
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    // If already running (desktop), just set up immediately
+    if (audioCtx.state === 'running') { setupAudio(); return; }
 
-    // Master game audio gain — duck this when Bandcamp player is open
-    masterGameGain = audioCtx.createGain();
-    masterGameGain.gain.value = 1.0;
-    masterGameGain.connect(audioCtx.destination);
+    // iOS unlock pattern: play a 1-sample silent buffer, THEN resume.
+    // This convinces iOS the gesture is intentional before we call resume().
+    const buf = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(audioCtx.destination);
+    src.start(0);
 
-    // Deep drone
-    droneOsc = audioCtx.createOscillator();
-    droneOsc.type = 'sine';
-    droneOsc.frequency.value = 110;
-    const droneGain = audioCtx.createGain();
-    droneGain.gain.value = 0.038;
-    droneOsc.connect(droneGain).connect(masterGameGain);
-    droneOsc.start();
-
-    // Mid harmonic (perfect 5th above)
-    const midOsc = audioCtx.createOscillator();
-    midOsc.type = 'triangle';
-    midOsc.frequency.value = 165;
-    const midGain = audioCtx.createGain();
-    midGain.gain.value = 0.018;
-    midOsc.connect(midGain).connect(masterGameGain);
-    midOsc.start();
-
-    // Shimmer (high pad, slow LFO tremolo)
-    const shimOsc = audioCtx.createOscillator();
-    shimOsc.type = 'sine';
-    shimOsc.frequency.value = 440;
-    shimmerGain = audioCtx.createGain();
-    shimmerGain.gain.value = 0.008;
-    shimOsc.connect(shimmerGain).connect(masterGameGain);
-    shimOsc.start();
-
-    // LFO for shimmer tremolo
-    const lfo = audioCtx.createOscillator();
-    lfo.frequency.value = 0.22;
-    const lfoGain = audioCtx.createGain();
-    lfoGain.gain.value = 0.008;
-    lfo.connect(lfoGain).connect(shimmerGain.gain);
-    lfo.start();
-
-    // ── 19 gem voices: each gem has a unique harmonic tone ──
-    const FREQS = [130.8,146.8,164.8,196,220,261.6,293.7,329.6,392,440,
-                   523.3,587.3,659.3,784,880,311,415,466,987.8];
-    gemVoices = GEM_DATA.map((d, i) => {
-      const g = audioCtx.createGain(); g.gain.value = 0; g.connect(masterGameGain);
-      const o1 = audioCtx.createOscillator(); o1.type='sine'; o1.frequency.value=FREQS[i];
-      o1.connect(g); o1.start();
-      const o2 = audioCtx.createOscillator(); o2.type='sine'; o2.frequency.value=FREQS[i]*1.5;
-      const g2 = audioCtx.createGain(); g2.gain.value=0.38; o2.connect(g2).connect(g); o2.start();
-      return { g, alive:true };
-    });
-  } catch(e) { /* audio not supported */ }
+    // Only wire up oscillators once context is genuinely running
+    audioCtx.resume().then(setupAudio).catch(()=>{});
+  } catch(e) { /* not supported */ }
 }
 
 function setAudioZone(zoneIdx) {
@@ -1026,17 +1061,17 @@ function playCollectSound() {
   osc.stop(audioCtx.currentTime + 0.5);
 }
 
-// Init audio on first user gesture, then keep resuming on every touch
-// (iOS suspends AudioContext whenever page loses focus)
-['pointerdown','keydown','touchstart'].forEach(ev =>
+// Init on first keyboard / pointer gesture (desktop)
+['pointerdown','keydown'].forEach(ev =>
   window.addEventListener(ev, initAudio, {once:true, passive:true})
 );
-// Persistent resume handler for iOS background/foreground cycles
+// Persistent resume: iOS suspends context on background/foreground cycles
 window.addEventListener('touchstart', () => {
-  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().then(setupAudio);
 }, { passive: true });
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  if (!document.hidden && audioCtx && audioCtx.state === 'suspended')
+    audioCtx.resume().then(setupAudio);
 });
 
 // ═══════════════════════════════════════════════════════════
