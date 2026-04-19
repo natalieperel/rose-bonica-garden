@@ -54,10 +54,14 @@ canvas { display:block; }
 
 /* ── MINIMAP ── */
 #minimap-wrap {
-  position:fixed; bottom:20px; right:20px; z-index:300;
+  position:fixed; bottom:20px; left:22px; z-index:300;
   width:100px; height:100px; border-radius:50%;
   border:1.5px solid rgba(255,255,255,0.18);
   background:rgba(0,0,0,0.45); overflow:hidden;
+}
+/* On touch devices push minimap above joystick */
+@media (pointer:coarse) {
+  #minimap-wrap { bottom:140px; }
 }
 #minimap {
   width:100px; height:100px; border-radius:50%;
@@ -109,6 +113,7 @@ canvas { display:block; }
 /* ── MOBILE JOYSTICK ── */
 #joystick-wrap {
   display:none; position:fixed; bottom:28px; left:28px; z-index:400;
+  /* minimap is also bottom-left on mobile — sit above it */
   touch-action:none; -webkit-tap-highlight-color:transparent;
 }
 #joystick-pad {
@@ -168,11 +173,15 @@ canvas { display:block; }
 /* ── BADGE STRIP (collected gems, top-right) ── */
 #badge-strip {
   position:fixed; top:44px; right:16px; z-index:300;
-  display:flex; flex-direction:column; gap:5px; align-items:flex-end;
-  max-height:calc(100vh - 80px); overflow-y:auto; pointer-events:none;
+  display:flex; flex-direction:column; gap:4px; align-items:flex-end;
+  max-height:calc(100vh - 58px); overflow-y:auto; overflow-x:visible;
+  pointer-events:none;
+  /* hide scrollbar but keep scrollable */
+  scrollbar-width:none;
 }
+#badge-strip::-webkit-scrollbar { display:none; }
 .gem-badge {
-  width:36px; height:36px; border-radius:7px; overflow:hidden;
+  width:30px; height:30px; border-radius:6px; overflow:hidden;
   border:1.5px solid rgba(255,255,255,0.22); cursor:pointer;
   pointer-events:auto; opacity:0; transform:scale(0.4) translateX(20px);
   transition:transform .45s cubic-bezier(.34,1.56,.64,1), opacity .35s;
