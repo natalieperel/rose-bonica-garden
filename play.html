@@ -1345,6 +1345,9 @@ document.getElementById('share-btn').addEventListener('click', generateShareCard
 const camCur    = new THREE.Vector3(0, 10, 16);
 const camLookAt = new THREE.Vector3(0, 1.2, 0);
 const CAM_OFF   = new THREE.Vector3(0, 8, 13);
+// Dynamic zoom-out in peaky terrain
+let camZoom = 0;       // 0 = normal, 1 = fully zoomed out
+let peakFrame = 0;     // throttle the terrain sampling
 
 // ═══════════════════════════════════════════════════════════
 // MAIN LOOP
@@ -1422,9 +1425,33 @@ function animate() {
   }
 
   // ─── Camera (fixed world-space offset — never rotates) ────
-  camCur.lerp(char.position.clone().add(CAM_OFF), 0.065);
+  // Every 18 frames, sample terrain height in a ring around player.
+  // High surrounding peaks → smoothly pull camera back + up.
+  peakFrame++;
+  if (peakFrame >= 18) {
+    peakFrame = 0;
+    let sumExcess = 0;
+    const SR = 16; // sample radius
+    for (let pi = 0; pi < 8; pi++) {
+      const pa = (pi / 8) * Math.PI * 2;
+      const sh = groundY(
+        char.position.x + Math.cos(pa) * SR,
+        char.position.z + Math.sin(pa) * SR
+      );
+      sumExcess += Math.max(0, sh - char.position.y - 0.8);
+    }
+    const peakTarget = Math.min(1, sumExcess / 14);
+    camZoom += (peakTarget - camZoom) * 0.25;
+  }
+  // Lerp between normal offset and zoomed-out offset
+  const dynY  = 8  + camZoom * 9;   // up to +9 units higher
+  const dynZ  = 13 + camZoom * 14;  // up to +14 units further back
+  const dynOff = new THREE.Vector3(0, dynY, dynZ);
+  camCur.lerp(char.position.clone().add(dynOff), 0.055);
   camera.position.copy(camCur);
-  camLookAt.lerp(new THREE.Vector3(char.position.x, char.position.y + 1.4, char.position.z), 0.09);
+  // Look slightly higher when zoomed out so the character stays in frame
+  const lookY = char.position.y + 1.4 + camZoom * 2.5;
+  camLookAt.lerp(new THREE.Vector3(char.position.x, lookY, char.position.z), 0.09);
   camera.lookAt(camLookAt);
 
   // ─── Gems: float + spin + proximity ────────────
