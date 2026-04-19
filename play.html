@@ -70,22 +70,20 @@ canvas { display:block; }
     right: 10px;
   }
 
-  /* Review panel: bottom sheet on mobile — full width, slides up */
+  /* Review panel: right-side strip — clears joystick+minimap (both left) */
   #review-panel {
-    bottom: 0; left: 0; right: 0; top: auto;
-    width: 100%;
-    border-radius: 18px 18px 0 0;
-    padding: 18px 20px 44px;  /* 44px safe area for home indicator */
-    max-height: 72vh;
+    bottom: 0; right: 8px; left: auto; top: auto;
+    width: min(224px, 56vw);     /* on 390px phone → 218px, left edge at 164px;
+                                    minimap right edge ≈ 122px — 42px clear */
+    border-radius: 14px 14px 0 0;
+    padding: 14px 14px 38px;    /* 38px = home-indicator safe area */
+    max-height: 65vh;
   }
-  #review-panel.collapsed {
-    padding: 14px 20px 32px;
-  }
-  /* Shorter art so full panel fits on screen */
-  #review-panel .review-art { aspect-ratio: 16/7; }
-  /* Collapse button repositioned for sheet layout */
-  #review-panel .review-collapse { top:12px; right:46px; }
-  #review-panel .card-close { top:12px; right:14px; }
+  #review-panel.collapsed { padding: 12px 14px 32px; }
+  /* Shorter art so panel fits without scrolling */
+  #review-panel .review-art { aspect-ratio: 4/3; }
+  #review-panel .review-collapse { top:10px; right:38px; }
+  #review-panel .card-close     { top:10px; right:10px; }
 }
 #minimap {
   width:100px; height:100px; border-radius:50%;
@@ -816,17 +814,23 @@ scene.add(char);
 // Eyes (white + dark pupil)
 const eyeWhiteM = new THREE.MeshLambertMaterial({color:0xffffff,flatShading:true});
 const eyeDarkM  = new THREE.MeshLambertMaterial({color:0x180820,flatShading:true});
+// Eyes — pushed past sphere surface (r=0.36) so head occludes them
+// when character faces away, and they sit cleanly on the face when forward
 [[-0.13,0],[0.13,0]].forEach(([ex]) => {
-  const w = new THREE.Mesh(new THREE.SphereGeometry(.065,5,4), eyeWhiteM);
-  w.position.set(ex, 1.88, -.3); char.add(w);
-  const p = new THREE.Mesh(new THREE.SphereGeometry(.038,5,4), eyeDarkM);
-  p.position.set(ex, 1.88, -.33); char.add(p);
+  const w = new THREE.Mesh(new THREE.SphereGeometry(.065,6,5), eyeWhiteM);
+  w.position.set(ex, 1.88, -.40); char.add(w);
+  const p = new THREE.Mesh(new THREE.SphereGeometry(.038,6,5), eyeDarkM);
+  p.position.set(ex, 1.88, -.44); char.add(p);
+  // Tiny specular dot
+  const s = new THREE.Mesh(new THREE.SphereGeometry(.014,4,3),
+    new THREE.MeshBasicMaterial({color:0xffffff}));
+  s.position.set(ex+.022, 1.90, -.47); char.add(s);
 });
-// Blush
-const blushM = new THREE.MeshLambertMaterial({color:0xff88aa,flatShading:true,transparent:true,opacity:.45});
-[[-0.23,0],[0.23,0]].forEach(([bx]) => {
-  const b = new THREE.Mesh(new THREE.SphereGeometry(.06,4,3), blushM);
-  b.position.set(bx, 1.77, -.27); b.scale.z=.28; char.add(b);
+// Blush — on face surface
+const blushM = new THREE.MeshLambertMaterial({color:0xff88aa,flatShading:true,transparent:true,opacity:.5});
+[[-0.22,0],[0.22,0]].forEach(([bx]) => {
+  const b = new THREE.Mesh(new THREE.SphereGeometry(.07,5,4), blushM);
+  b.position.set(bx, 1.76, -.37); b.scale.z=.22; char.add(b);
 });
 // Skirt (purple cone)
 const skirtM = new THREE.MeshLambertMaterial({color:0x3d1060,flatShading:true});
