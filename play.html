@@ -70,20 +70,17 @@ canvas { display:block; }
     right: 10px;
   }
 
-  /* Review panel: right-side strip — clears joystick+minimap (both left) */
+  /* Review panel: top-left, above minimap — grows downward, never cut off */
   #review-panel {
-    bottom: 0; right: 8px; left: auto; top: auto;
-    width: min(224px, 56vw);     /* on 390px phone → 218px, left edge at 164px;
-                                    minimap right edge ≈ 122px — 42px clear */
-    border-radius: 14px 14px 0 0;
-    padding: 14px 14px 38px;    /* 38px = home-indicator safe area */
-    max-height: 65vh;
+    top: 50px;          /* below gem counter / back link */
+    left: 14px;
+    bottom: auto; right: auto;
+    width: min(220px, 54vw);  /* clears badge strip on right */
+    max-height: calc(100vh - 290px); /* stops above minimap + joystick zone */
+    overflow-y: auto;
+    border-radius: 14px;
   }
-  #review-panel.collapsed { padding: 12px 14px 32px; }
-  /* Shorter art so panel fits without scrolling */
   #review-panel .review-art { aspect-ratio: 4/3; }
-  #review-panel .review-collapse { top:10px; right:38px; }
-  #review-panel .card-close     { top:10px; right:10px; }
 }
 #minimap {
   width:100px; height:100px; border-radius:50%;
@@ -220,24 +217,43 @@ canvas { display:block; }
 }
 #review-panel {
   display:none; position:fixed; z-index:500;
-  bottom:130px; right:20px;
+  bottom:140px; right:20px;
   background:rgba(8,22,12,0.97); backdrop-filter:blur(18px);
-  border:1px solid rgba(255,255,255,0.13); border-radius:14px;
-  padding:16px 18px 14px; width:min(260px,72vw);
-  box-shadow:0 8px 50px rgba(0,0,0,.8);
+  border:1px solid rgba(255,255,255,0.14); border-radius:14px;
+  width:min(260px,72vw); overflow:hidden;
+  box-shadow:0 8px 50px rgba(0,0,0,.85);
 }
 #review-panel.visible { display:block; animation:reviewIn .35s cubic-bezier(.34,1.56,.64,1) forwards; }
 
-/* Collapsed — title + player only */
-#review-panel.collapsed { padding:10px 14px; }
-#review-panel.collapsed .review-art,
-#review-panel.collapsed .review-type,
-#review-panel.collapsed #review-link { display:none !important; }
-#review-panel.collapsed .review-title {
-  font-size:10px; margin-bottom:8px; white-space:nowrap;
-  overflow:hidden; text-overflow:ellipsis;
+/* ── Header row: always visible ── */
+.review-header {
+  display:flex; align-items:center; gap:6px;
+  padding:10px 10px 8px; border-bottom:1px solid rgba(255,255,255,.08);
 }
-#review-panel.collapsed #review-player { margin-bottom:0; }
+.review-header-title {
+  flex:1; font:700 10px/1.2 Arial; color:rgba(255,255,255,.7);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.review-collapse-btn {
+  flex-shrink:0;
+  background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.18);
+  border-radius:20px; color:#fff; font:700 8px/1 Arial; letter-spacing:.1em;
+  text-transform:uppercase; padding:5px 10px; cursor:pointer;
+  transition:background .15s; white-space:nowrap;
+}
+.review-collapse-btn:hover, .review-collapse-btn:active { background:rgba(255,255,255,.22); }
+#review-panel.collapsed .review-collapse-btn { content:'+ max'; }
+.review-x-btn {
+  flex-shrink:0;
+  background:none; border:none; color:rgba(255,255,255,.45);
+  font-size:15px; cursor:pointer; padding:4px 6px; line-height:1;
+  transition:color .15s;
+}
+.review-x-btn:hover { color:#fff; }
+
+/* ── Expandable body ── */
+.review-body { padding:12px 14px 14px; }
+#review-panel.collapsed .review-body { display:none; }
 
 .review-art { width:100%; aspect-ratio:1/1; border-radius:8px; overflow:hidden; margin-bottom:10px;
   background:rgba(255,255,255,.05); }
@@ -247,17 +263,6 @@ canvas { display:block; }
 .review-title { font:900 13px/1.25 Arial; color:#fff; margin-bottom:10px; }
 #review-player { margin-bottom:10px; }
 #review-player iframe { display:block; border:0; width:100%; height:42px; border-radius:6px; }
-
-/* Collapse toggle */
-.review-collapse {
-  position:absolute; top:8px; right:34px;
-  background:none; border:none; color:rgba(255,255,255,.4);
-  font-size:16px; line-height:1; cursor:pointer;
-  padding:6px 8px;           /* big touch target */
-  transition:color .15s, transform .25s; z-index:2;
-}
-.review-collapse:hover { color:#fff; }
-#review-panel.collapsed .review-collapse { transform:rotate(180deg); }
 
 /* ── SOUND BUTTON (mobile tap-to-enable) — sits just above controls hint ── */
 #sound-btn {
@@ -362,13 +367,20 @@ canvas { display:block; }
 
 <!-- Review panel (opens when badge is tapped) -->
 <div id="review-panel">
-  <button class="review-collapse" id="review-collapse-btn" title="Collapse">&#x2303;</button>
-  <button class="card-close" id="review-close">&#x2715;</button>
-  <div class="review-art" id="review-art"></div>
-  <div class="review-type" id="review-type"></div>
-  <div class="review-title" id="review-title"></div>
-  <div id="review-player"></div>
-  <a class="card-link" id="review-link" href="#" target="_blank">Open on Bandcamp &#8599;</a>
+  <!-- Sticky header row — always visible -->
+  <div class="review-header">
+    <span class="review-header-title" id="review-header-title"></span>
+    <button class="review-collapse-btn" id="review-collapse-btn">— min</button>
+    <button class="review-x-btn" id="review-close">✕</button>
+  </div>
+  <!-- Expandable content -->
+  <div class="review-body">
+    <div class="review-art" id="review-art"></div>
+    <div class="review-type" id="review-type"></div>
+    <div class="review-title" id="review-title"></div>
+    <div id="review-player"></div>
+    <a class="card-link" id="review-link" href="#" target="_blank">Open on Bandcamp &#8599;</a>
+  </div>
 </div>
 
 <!-- Sound enable button (prominent on mobile, auto-hides after tap) -->
@@ -811,22 +823,7 @@ const rLegPiv = new THREE.Group(); rLegPiv.position.set( .15,.88,0); char.add(rL
 scene.add(char);
 
 // ── Character detail ────────────────────────────────────────
-// Eyes (white + dark pupil)
-const eyeWhiteM = new THREE.MeshLambertMaterial({color:0xffffff,flatShading:true});
-const eyeDarkM  = new THREE.MeshLambertMaterial({color:0x180820,flatShading:true});
-// Eyes — pushed past sphere surface (r=0.36) so head occludes them
-// when character faces away, and they sit cleanly on the face when forward
-[[-0.13,0],[0.13,0]].forEach(([ex]) => {
-  const w = new THREE.Mesh(new THREE.SphereGeometry(.065,6,5), eyeWhiteM);
-  w.position.set(ex, 1.88, -.40); char.add(w);
-  const p = new THREE.Mesh(new THREE.SphereGeometry(.038,6,5), eyeDarkM);
-  p.position.set(ex, 1.88, -.44); char.add(p);
-  // Tiny specular dot
-  const s = new THREE.Mesh(new THREE.SphereGeometry(.014,4,3),
-    new THREE.MeshBasicMaterial({color:0xffffff}));
-  s.position.set(ex+.022, 1.90, -.47); char.add(s);
-});
-// Blush — on face surface
+// Blush only — keeps the cutesy look without the eye-bleed issue
 const blushM = new THREE.MeshLambertMaterial({color:0xff88aa,flatShading:true,transparent:true,opacity:.5});
 [[-0.22,0],[0.22,0]].forEach(([bx]) => {
   const b = new THREE.Mesh(new THREE.SphereGeometry(.07,5,4), blushM);
@@ -844,12 +841,6 @@ const bowM = new THREE.MeshLambertMaterial({color:0xe6f14a,flatShading:true});
 });
 const bowKnot = new THREE.Mesh(new THREE.SphereGeometry(.055,5,4), bowM);
 bowKnot.position.set(0,2.55,0); char.add(bowKnot);
-// Earrings (teal, emissive)
-const earM = new THREE.MeshLambertMaterial({color:0x4ECDC4,flatShading:true,emissive:new THREE.Color(0x4ECDC4),emissiveIntensity:.3});
-[-0.38, 0.38].forEach(ex => {
-  const e = new THREE.Mesh(new THREE.SphereGeometry(.042,5,4), earM);
-  e.position.set(ex,1.72,-.1); char.add(e);
-});
 
 // ═══════════════════════════════════════════════════════════
 // GEMS
@@ -1023,8 +1014,9 @@ function spawnBadge(idx) {
 function openReview(idx) {
   const d = GEM_DATA[idx];
   document.getElementById('review-art').innerHTML   = d.art ? `<img src="${d.art}" alt="">` : '';
-  document.getElementById('review-type').textContent  = d.type;
-  document.getElementById('review-title').textContent = d.title;
+  document.getElementById('review-type').textContent        = d.type;
+  document.getElementById('review-title').textContent       = d.title;
+  document.getElementById('review-header-title').textContent = d.title;
   document.getElementById('review-link').href = d.url;
   const playerEl = document.getElementById('review-player');
   if (d.bcid) {
@@ -1034,8 +1026,11 @@ function openReview(idx) {
   reviewPanel.classList.remove('visible');
   void reviewPanel.offsetWidth;
   reviewPanel.classList.add('visible');
-  // On mobile start collapsed (small strip) — user taps chevron to expand
-  reviewPanel.classList.toggle('collapsed', window.matchMedia('(pointer:coarse)').matches);
+  // On mobile start collapsed — user taps '+ max' to expand
+  const isMobile = window.matchMedia('(pointer:coarse)').matches;
+  reviewPanel.classList.toggle('collapsed', isMobile);
+  const colBtn = document.getElementById('review-collapse-btn');
+  if (colBtn) colBtn.textContent = isMobile ? '+ max' : '— min';
   // Duck game ambience so Bandcamp player is clearly audible
   if (masterGameGain) masterGameGain.gain.setTargetAtTime(0.10, audioCtx.currentTime, 0.6);
 }
@@ -1049,7 +1044,8 @@ document.getElementById('review-close').addEventListener('click', e => { e.stopP
 // Collapse / expand toggle
 document.getElementById('review-collapse-btn').addEventListener('click', e => {
   e.stopPropagation();
-  reviewPanel.classList.toggle('collapsed');
+  const isCollapsed = reviewPanel.classList.toggle('collapsed');
+  e.currentTarget.textContent = isCollapsed ? '+ max' : '— min';
 });
 
 // ═══════════════════════════════════════════════════════════
