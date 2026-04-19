@@ -70,16 +70,22 @@ canvas { display:block; }
     right: 10px;
   }
 
-  /* Review panel: anchor top-right, well clear of minimap + joystick */
+  /* Review panel: bottom sheet on mobile — full width, slides up */
   #review-panel {
-    bottom: auto;
-    top: 48px;
-    right: 10px;
-    width: min(230px, calc(100vw - 56px));  /* won't overlap minimap */
-    max-height: calc(100vh - 200px);
-    overflow-y: auto;
+    bottom: 0; left: 0; right: 0; top: auto;
+    width: 100%;
+    border-radius: 18px 18px 0 0;
+    padding: 18px 20px 44px;  /* 44px safe area for home indicator */
+    max-height: 72vh;
   }
-  #review-panel .review-art { aspect-ratio: 2/1; }  /* shorter art on mobile */
+  #review-panel.collapsed {
+    padding: 14px 20px 32px;
+  }
+  /* Shorter art so full panel fits on screen */
+  #review-panel .review-art { aspect-ratio: 16/7; }
+  /* Collapse button repositioned for sheet layout */
+  #review-panel .review-collapse { top:12px; right:46px; }
+  #review-panel .card-close { top:12px; right:14px; }
 }
 #minimap {
   width:100px; height:100px; border-radius:50%;
@@ -209,44 +215,48 @@ canvas { display:block; }
 .gem-badge img { width:100%; height:100%; object-fit:cover; display:block; }
 .gem-badge:hover { transform:scale(1.12) translateX(0) !important; }
 
-/* ── REVIEW PANEL (opens from badge tap, bottom-right) ── */
+/* ── REVIEW PANEL ── */
+@keyframes reviewIn {
+  from { opacity:0; transform:translateY(10px) scale(.95); }
+  to   { opacity:1; transform:none; }
+}
 #review-panel {
   display:none; position:fixed; z-index:500;
   bottom:130px; right:20px;
-  background:rgba(8,22,12,0.95); backdrop-filter:blur(18px);
+  background:rgba(8,22,12,0.97); backdrop-filter:blur(18px);
   border:1px solid rgba(255,255,255,0.13); border-radius:14px;
   padding:16px 18px 14px; width:min(260px,72vw);
-  box-shadow:0 8px 50px rgba(0,0,0,.7);
-  transition:padding .3s;
+  box-shadow:0 8px 50px rgba(0,0,0,.8);
 }
-#review-panel.visible { display:block; animation:cardIn .38s cubic-bezier(.34,1.56,.64,1) forwards; }
+#review-panel.visible { display:block; animation:reviewIn .35s cubic-bezier(.34,1.56,.64,1) forwards; }
 
-/* Collapsed state — just player strip */
-#review-panel.collapsed { padding:10px 14px 10px; }
+/* Collapsed — title + player only */
+#review-panel.collapsed { padding:10px 14px; }
 #review-panel.collapsed .review-art,
 #review-panel.collapsed .review-type,
-#review-panel.collapsed #review-link { display:none; }
+#review-panel.collapsed #review-link { display:none !important; }
 #review-panel.collapsed .review-title {
-  font-size:10px; margin-bottom:7px; white-space:nowrap;
+  font-size:10px; margin-bottom:8px; white-space:nowrap;
   overflow:hidden; text-overflow:ellipsis;
 }
 #review-panel.collapsed #review-player { margin-bottom:0; }
 
 .review-art { width:100%; aspect-ratio:1/1; border-radius:8px; overflow:hidden; margin-bottom:10px;
-  background:rgba(255,255,255,.05); transition:all .3s; }
+  background:rgba(255,255,255,.05); }
 .review-art img { width:100%; height:100%; object-fit:cover; display:block; }
 .review-type { font:800 7px/1 Arial; letter-spacing:.22em; text-transform:uppercase;
-  color:rgba(255,255,255,.36); margin-bottom:4px; transition:all .3s; }
-.review-title { font:900 13px/1.25 Arial; color:#fff; margin-bottom:10px; transition:all .25s; }
-#review-player { margin-bottom:10px; border-radius:6px; overflow:hidden; }
+  color:rgba(255,255,255,.36); margin-bottom:4px; }
+.review-title { font:900 13px/1.25 Arial; color:#fff; margin-bottom:10px; }
+#review-player { margin-bottom:10px; }
 #review-player iframe { display:block; border:0; width:100%; height:42px; border-radius:6px; }
 
-/* Collapse toggle button */
+/* Collapse toggle */
 .review-collapse {
-  position:absolute; top:10px; right:36px;
-  background:none; border:none; color:rgba(255,255,255,.35);
-  font-size:14px; cursor:pointer; padding:3px 5px; line-height:1;
-  transition:color .15s, transform .25s;
+  position:absolute; top:8px; right:34px;
+  background:none; border:none; color:rgba(255,255,255,.4);
+  font-size:16px; line-height:1; cursor:pointer;
+  padding:6px 8px;           /* big touch target */
+  transition:color .15s, transform .25s; z-index:2;
 }
 .review-collapse:hover { color:#fff; }
 #review-panel.collapsed .review-collapse { transform:rotate(180deg); }
@@ -1015,17 +1025,13 @@ function openReview(idx) {
   const playerEl = document.getElementById('review-player');
   if (d.bcid) {
     const kind = d.type === 'Album' ? 'album' : 'track';
-    playerEl.innerHTML = `<iframe src="https://bandcamp.com/EmbeddedPlayer/${kind}=${d.bcid}/size=small/bgcol=080808/linkcol=4ECDC4/transparent=true/" seamless></iframe>`;
+    playerEl.innerHTML = `<iframe src="https://bandcamp.com/EmbeddedPlayer/${kind}=${d.bcid}/size=small/bgcol=080808/linkcol=4ECDC4/transparent=true/" width="100%" height="42" frameborder="0" scrolling="no" allow="autoplay"></iframe>`;
   } else { playerEl.innerHTML = ''; }
   reviewPanel.classList.remove('visible');
   void reviewPanel.offsetWidth;
   reviewPanel.classList.add('visible');
-  // Auto-collapse on touch devices so it doesn't block the screen
-  if (window.matchMedia('(pointer:coarse)').matches) {
-    reviewPanel.classList.add('collapsed');
-  } else {
-    reviewPanel.classList.remove('collapsed');
-  }
+  // On mobile start collapsed (small strip) — user taps chevron to expand
+  reviewPanel.classList.toggle('collapsed', window.matchMedia('(pointer:coarse)').matches);
   // Duck game ambience so Bandcamp player is clearly audible
   if (masterGameGain) masterGameGain.gain.setTargetAtTime(0.10, audioCtx.currentTime, 0.6);
 }
