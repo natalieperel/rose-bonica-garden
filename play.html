@@ -1093,11 +1093,10 @@ function openReview(idx) {
   reviewPanel.classList.remove('mini-mode', 'visible');
   void reviewPanel.offsetWidth;
   reviewPanel.classList.add('visible');
-  // On mobile start collapsed — user taps '+ max' to expand
-  const isMobile = window.matchMedia('(pointer:coarse)').matches;
-  reviewPanel.classList.toggle('collapsed', isMobile);
+  // On mobile the body is hidden via CSS media query; never collapse (would hide the player)
+  reviewPanel.classList.remove('collapsed');
   const colBtn = document.getElementById('review-collapse-btn');
-  if (colBtn) colBtn.textContent = isMobile ? '+ max' : '— min';
+  if (colBtn) colBtn.textContent = '— min';
   // Duck game ambience so Bandcamp player is clearly audible
   if (masterGameGain) masterGameGain.gain.setTargetAtTime(0.10, audioCtx.currentTime, 0.6);
 }
