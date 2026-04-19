@@ -157,6 +157,13 @@ canvas { display:block; }
   transition:all .18s; margin-top:2px;
 }
 .win-back-btn:hover { color:#fff; border-color:rgba(255,255,255,.55); }
+.share-btn {
+  background:rgba(78,205,196,.18); border:1px solid rgba(78,205,196,.5);
+  border-radius:100px; font:800 10px/1 Arial; letter-spacing:.18em;
+  text-transform:uppercase; color:#fff; padding:10px 24px; cursor:pointer;
+  transition:background .2s; box-shadow:0 0 18px 3px rgba(78,205,196,.2);
+}
+.share-btn:hover { background:rgba(78,205,196,.38); }
 
 /* ── BADGE STRIP (collected gems, top-right) ── */
 #badge-strip {
@@ -261,6 +268,7 @@ canvas { display:block; }
   <h2>You explored the whole garden.</h2>
   <p>Rose Bonica's full discography — now yours to discover.</p>
   <a href="https://rosebonica.bandcamp.com" target="_blank" class="win-link">Full Discography &#8599;</a>
+  <button class="share-btn" id="share-btn">✦ Share your collection</button>
   <button class="win-back-btn" onclick="location.href='index.html'">← Back to Garden</button>
 </div>
 
@@ -310,8 +318,8 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0d1e14);
-scene.fog = new THREE.Fog(0x0d1e14, 38, 125);
+scene.background = new THREE.Color(0x1a0828);
+scene.fog = new THREE.Fog(0x1a0828, 38, 125);
 
 const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 300);
 camera.position.set(0, 10, 16);
@@ -420,9 +428,49 @@ function spawnMountain(x, z, hScale) {
   [18,-48,0.8],[-30,-16,0.7],[60,-50,1.1],[-48,-38,0.9],[8,-92,0.8],
 ].forEach(([x,z,s]) => spawnMountain(x, z, s));
 
+// ── Hidden landmark: Stone Circle ──────────────────────────
+function buildStoneCircle(cx, cz) {
+  const grp = new THREE.Group();
+  for (let i = 0; i < 11; i++) {
+    const a = (i/11)*Math.PI*2, h = 2.2 + Math.random()*1.8;
+    const s = new THREE.Mesh(
+      new THREE.BoxGeometry(.7+Math.random()*.5, h, .5+Math.random()*.3),
+      new THREE.MeshLambertMaterial({color:0x3a3050,flatShading:true})
+    );
+    s.position.set(Math.cos(a)*8, h/2, Math.sin(a)*8);
+    s.rotation.y = a + (Math.random()-.5)*.4;
+    grp.add(s);
+  }
+  const pool = new THREE.Mesh(
+    new THREE.CylinderGeometry(2.8,2.8,.08,12),
+    new THREE.MeshLambertMaterial({color:0x9D79BC,emissive:new THREE.Color(0x9D79BC),emissiveIntensity:.9})
+  );
+  pool.position.y = .04; grp.add(pool);
+  const pl = new THREE.PointLight(0x9D79BC, 3, 16); pl.position.y = 1.5; grp.add(pl);
+  grp.position.set(cx, groundY(cx,cz), cz);
+  scene.add(grp);
+}
+buildStoneCircle(-58, -58);
+
+// ── Hidden landmark: Glowing Obelisk ───────────────────────
+function buildObelisk(cx, cz) {
+  const mat = new THREE.MeshLambertMaterial({color:0x4ECDC4,emissive:new THREE.Color(0x4ECDC4),emissiveIntensity:.55,flatShading:true});
+  const grp = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(.3,.52,5,6), mat);
+  body.position.y = 2.5; grp.add(body);
+  const tip = new THREE.Mesh(new THREE.ConeGeometry(.3,1.2,6), mat);
+  tip.position.y = 5.6; grp.add(tip);
+  const pl2 = new THREE.PointLight(0x4ECDC4, 3, 20); pl2.position.y = 6.5; grp.add(pl2);
+  grp.position.set(cx, groundY(cx,cz), cz);
+  scene.add(grp);
+}
+buildObelisk(55, -72);
+
 // ═══════════════════════════════════════════════════════════
 // TREES + FLOWERS
 // ═══════════════════════════════════════════════════════════
+const TREE_COLLIDERS = [];
+
 function spawnTree(x, z) {
   const grp = new THREE.Group();
   grp.add((() => {
@@ -436,6 +484,7 @@ function spawnTree(x, z) {
     cone.position.y = y; grp.add(cone);
   });
   grp.position.set(x, groundY(x,z), z);
+  TREE_COLLIDERS.push({ x, z, r: 0.65 });
   scene.add(grp);
 }
 
@@ -518,6 +567,41 @@ const rLegPiv = new THREE.Group(); rLegPiv.position.set( .15,.88,0); char.add(rL
 });
 
 scene.add(char);
+
+// ── Character detail ────────────────────────────────────────
+// Eyes (white + dark pupil)
+const eyeWhiteM = new THREE.MeshLambertMaterial({color:0xffffff,flatShading:true});
+const eyeDarkM  = new THREE.MeshLambertMaterial({color:0x180820,flatShading:true});
+[[-0.13,0],[0.13,0]].forEach(([ex]) => {
+  const w = new THREE.Mesh(new THREE.SphereGeometry(.065,5,4), eyeWhiteM);
+  w.position.set(ex, 1.88, -.3); char.add(w);
+  const p = new THREE.Mesh(new THREE.SphereGeometry(.038,5,4), eyeDarkM);
+  p.position.set(ex, 1.88, -.33); char.add(p);
+});
+// Blush
+const blushM = new THREE.MeshLambertMaterial({color:0xff88aa,flatShading:true,transparent:true,opacity:.45});
+[[-0.23,0],[0.23,0]].forEach(([bx]) => {
+  const b = new THREE.Mesh(new THREE.SphereGeometry(.06,4,3), blushM);
+  b.position.set(bx, 1.77, -.27); b.scale.z=.28; char.add(b);
+});
+// Skirt (purple cone)
+const skirtM = new THREE.MeshLambertMaterial({color:0x3d1060,flatShading:true});
+const skirt = new THREE.Mesh(new THREE.CylinderGeometry(.28,.54,.55,7), skirtM);
+skirt.position.y = 0.62; skirt.castShadow = true; char.add(skirt);
+// Hair bow (yellow)
+const bowM = new THREE.MeshLambertMaterial({color:0xe6f14a,flatShading:true});
+[[-0.12,0.4],[0.12,-0.4]].forEach(([bx,rz]) => {
+  const wing = new THREE.Mesh(new THREE.BoxGeometry(.18,.1,.06), bowM);
+  wing.position.set(bx,2.55,0); wing.rotation.z=rz; char.add(wing);
+});
+const bowKnot = new THREE.Mesh(new THREE.SphereGeometry(.055,5,4), bowM);
+bowKnot.position.set(0,2.55,0); char.add(bowKnot);
+// Earrings (teal, emissive)
+const earM = new THREE.MeshLambertMaterial({color:0x4ECDC4,flatShading:true,emissive:new THREE.Color(0x4ECDC4),emissiveIntensity:.3});
+[-0.38, 0.38].forEach(ex => {
+  const e = new THREE.Mesh(new THREE.SphereGeometry(.042,5,4), earM);
+  e.position.set(ex,1.72,-.1); char.add(e);
+});
 
 // ═══════════════════════════════════════════════════════════
 // GEMS
@@ -888,15 +972,16 @@ function drawMinimap() {
 // ZONES
 // ═══════════════════════════════════════════════════════════
 const ZONES = [
-  { name:'THE VALLEY',      cx:  0, cz:  0, r:16, fog:0x0d1e14, amb:0x8fb8c0 },
-  { name:'THE DEEP GARDEN', cx:  0, cz:-32, r:20, fog:0x0d1a20, amb:0x6a9ec8 },
-  { name:'THE PEAKS',       cx:-28, cz:-28, r:22, fog:0x14102a, amb:0xa070d8 },
-  { name:'THE AMBER HILLS', cx: 26, cz:-46, r:22, fog:0x1c1008, amb:0xd88844 },
-  { name:'THE FAR EDGE',    cx:  2, cz:-62, r:18, fog:0x1a1808, amb:0xc8c03a },
+  { name:'THE VALLEY',      cx:  0, cz:  0,  r:16, fog:0x1a0828, amb:0xd4724a, bg:0x1a0828 },
+  { name:'THE DEEP GARDEN', cx:  0, cz:-32,  r:20, fog:0x0e0a22, amb:0x9955dd, bg:0x0e0a22 },
+  { name:'THE PEAKS',       cx:-28, cz:-28,  r:22, fog:0x1e0830, amb:0xcc44aa, bg:0x1e0830 },
+  { name:'THE AMBER HILLS', cx: 26, cz:-46,  r:22, fog:0x1c0a06, amb:0xf06030, bg:0x1c0a06 },
+  { name:'THE FAR EDGE',    cx:  2, cz:-62,  r:18, fog:0x08041a, amb:0x5533cc, bg:0x08041a },
 ];
 let curZone = -1;
-const fogTarget = new THREE.Color(0x0d1e14);
-const ambTarget = new THREE.Color(0x8fb8c0);
+const fogTarget = new THREE.Color(0x1a0828);
+const ambTarget = new THREE.Color(0xd4724a);
+const bgTarget  = new THREE.Color(0x1a0828);
 const zoneLabelEl = document.getElementById('zone-label');
 const zonePillEl  = document.getElementById('zone-pill');
 let zoneFadeTimer = null;
@@ -909,6 +994,7 @@ function checkZones(x, z) {
         curZone = i;
         fogTarget.set(zn.fog);
         ambTarget.set(zn.amb);
+        bgTarget.set(zn.bg);
         setAudioZone(i);
         zoneLabelEl.textContent = zn.name;
         zoneLabelEl.classList.add('show');
@@ -923,6 +1009,7 @@ function checkZones(x, z) {
     curZone = 0;
     fogTarget.set(ZONES[0].fog);
     ambTarget.set(ZONES[0].amb);
+    bgTarget.set(ZONES[0].bg);
     setAudioZone(0);
   }
 }
@@ -956,6 +1043,46 @@ function tickParticles(dt) {
     p.userData.life -= dt*1.8;
     p.material.opacity = Math.max(0, p.userData.life);
     if (p.userData.life <= 0) { scene.remove(p); particles.splice(i,1); }
+  }
+}
+
+// ─── Falling Petals (weather) ───────────────────────────────
+const worldPetals = [];
+const PETAL_COLS = [0xff729f,0xe6f14a,0x4ecdc4,0xf39237,0x9d79bc,0xffffff];
+let petalTimer = 0;
+
+function tickWorldPetals(dt) {
+  petalTimer += dt;
+  if (worldPetals.length < 55 && petalTimer > 0.1) {
+    petalTimer = 0;
+    const m = new THREE.Mesh(
+      new THREE.PlaneGeometry(.12+Math.random()*.1, .08+Math.random()*.06),
+      new THREE.MeshBasicMaterial({
+        color: PETAL_COLS[Math.floor(Math.random()*PETAL_COLS.length)],
+        transparent: true, opacity: .72, side: THREE.DoubleSide
+      })
+    );
+    m.position.set(
+      char.position.x + (Math.random()-.5)*40,
+      char.position.y + 10 + Math.random()*7,
+      char.position.z + (Math.random()-.5)*40
+    );
+    m.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
+    m.userData.v = new THREE.Vector3((Math.random()-.5)*.3, -(0.4+Math.random()*.4), (Math.random()-.5)*.3);
+    m.userData.r = new THREE.Vector3(Math.random()*.5, Math.random()*.5, Math.random()*.5);
+    scene.add(m);
+    worldPetals.push(m);
+  }
+  for (let i = worldPetals.length-1; i >= 0; i--) {
+    const p = worldPetals[i];
+    p.position.addScaledVector(p.userData.v, dt);
+    p.rotation.x += p.userData.r.x * dt;
+    p.rotation.y += p.userData.r.y * dt;
+    p.rotation.z += p.userData.r.z * dt;
+    if (p.position.y < char.position.y - 3) {
+      scene.remove(p);
+      worldPetals.splice(i, 1);
+    }
   }
 }
 
@@ -1007,6 +1134,66 @@ function triggerWin() {
     }, i * 120);
   }
 }
+
+// ═══════════════════════════════════════════════════════════
+// SHARE CARD
+// ═══════════════════════════════════════════════════════════
+function generateShareCard() {
+  const W=1200, H=630, c=document.createElement('canvas');
+  c.width=W; c.height=H;
+  const x=c.getContext('2d');
+  // Background gradient
+  const bg=x.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,'#1a0828'); bg.addColorStop(.5,'#2a0d40'); bg.addColorStop(1,'#0a1a0e');
+  x.fillStyle=bg; x.fillRect(0,0,W,H);
+  // Stars
+  for(let i=0;i<220;i++){
+    x.beginPath();
+    x.arc(Math.random()*W, Math.random()*H, Math.random()*1.5, 0, Math.PI*2);
+    x.fillStyle=`rgba(255,255,255,${.1+Math.random()*.5})`; x.fill();
+  }
+  // Title
+  x.font='900 54px Arial'; x.fillStyle='#fff'; x.textAlign='center';
+  x.shadowColor='#9D79BC'; x.shadowBlur=28;
+  x.fillText('I found all 19 gems', W/2, 100); x.shadowBlur=0;
+  x.font='700 24px Arial'; x.fillStyle='rgba(255,255,255,.5)';
+  x.fillText('Rose Bonica · Garden of Gems', W/2, 142);
+  // Gem grid (5 cols × 4 rows)
+  const COLS=5, GX=(W-COLS*180)/2;
+  GEM_DATA.forEach((d,i)=>{
+    const col=i%COLS, row=Math.floor(i/COLS);
+    const gx=GX+col*180+90, gy=190+row*98+49;
+    const r=d.type==='Album'?28:18;
+    // Glow
+    const gr=x.createRadialGradient(gx,gy,0,gx,gy,r*2.4);
+    gr.addColorStop(0,d.color+'88'); gr.addColorStop(1,d.color+'00');
+    x.fillStyle=gr; x.fillRect(gx-r*3,gy-r*3,r*6,r*6);
+    // Diamond
+    x.beginPath(); x.moveTo(gx,gy-r); x.lineTo(gx+r*.6,gy); x.lineTo(gx,gy+r); x.lineTo(gx-r*.6,gy); x.closePath();
+    x.fillStyle=d.color; x.fill();
+    x.strokeStyle='rgba(255,255,255,.45)'; x.lineWidth=1.5; x.stroke();
+    // Specular
+    x.beginPath(); x.moveTo(gx,gy-r); x.lineTo(gx+r*.6,gy); x.lineTo(gx,gy-r*.15); x.closePath();
+    x.fillStyle='rgba(255,255,255,.32)'; x.fill();
+  });
+  // URL
+  x.font='700 19px Arial'; x.fillStyle='#4ECDC4';
+  x.fillText('rosebonica.com/play', W/2, H-32);
+  // Share or download
+  c.toBlob(blob=>{
+    const file=new File([blob],'rose-bonica-gems.png',{type:'image/png'});
+    if(navigator.canShare?.({files:[file]})){
+      navigator.share({title:'Rose Bonica',text:'I found all 19 gems!',files:[file]}).catch(()=>dlCard(c));
+    } else { dlCard(c); }
+  });
+}
+function dlCard(canvas) {
+  const a=document.createElement('a');
+  a.download='rose-bonica-gems.png';
+  a.href=canvas.toDataURL();
+  a.click();
+}
+document.getElementById('share-btn').addEventListener('click', generateShareCard);
 
 // ═══════════════════════════════════════════════════════════
 // CAMERA
@@ -1066,6 +1253,16 @@ function animate() {
   char.position.z = Math.max(-95, Math.min(95, char.position.z));
   char.position.y = groundY(char.position.x, char.position.z);
 
+  // Tree collision push-back
+  TREE_COLLIDERS.forEach(tr => {
+    const dx = char.position.x - tr.x, dz = char.position.z - tr.z;
+    const d = Math.sqrt(dx*dx + dz*dz);
+    if (d < tr.r && d > 0.001) {
+      char.position.x = tr.x + dx/d*tr.r;
+      char.position.z = tr.z + dz/d*tr.r;
+    }
+  });
+
   // ─── Walk animation ────────────────────────────
   if (isWalking) {
     walkPhase += dt * 9;
@@ -1114,10 +1311,20 @@ function animate() {
   // ─── Particles ─────────────────────────────────
   tickParticles(dt);
 
+  // ─── World petals ───────────────────────────────
+  tickWorldPetals(dt);
+
   // ─── Zones + atmosphere ─────────────────────────
   checkZones(char.position.x, char.position.z);
   scene.fog.color.lerp(fogTarget, 0.015);
   ambLight.color.lerp(ambTarget, 0.015);
+  scene.background.lerp(bgTarget, 0.012);
+
+  // ─── Day/night sun drift (600s cycle) ───────────
+  const dp = (t / 600) % 1;
+  const dusk = dp > 0.5 ? (dp - 0.5) * 2 : 0;
+  sun.color.setRGB(1.0, 0.97 - dusk * 0.38, 0.88 - dusk * 0.52);
+  sun.intensity = 1.3 - dusk * 0.38;
 
   // ─── Minimap ────────────────────────────────────
   drawMinimap();
