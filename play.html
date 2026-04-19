@@ -158,6 +158,42 @@ canvas { display:block; }
 }
 .win-back-btn:hover { color:#fff; border-color:rgba(255,255,255,.55); }
 
+/* ── BADGE STRIP (collected gems, top-right) ── */
+#badge-strip {
+  position:fixed; top:44px; right:16px; z-index:300;
+  display:flex; flex-direction:column; gap:5px; align-items:flex-end;
+  max-height:calc(100vh - 80px); overflow-y:auto; pointer-events:none;
+}
+.gem-badge {
+  width:36px; height:36px; border-radius:7px; overflow:hidden;
+  border:1.5px solid rgba(255,255,255,0.22); cursor:pointer;
+  pointer-events:auto; opacity:0; transform:scale(0.4) translateX(20px);
+  transition:transform .45s cubic-bezier(.34,1.56,.64,1), opacity .35s;
+  flex-shrink:0;
+}
+.gem-badge.in { opacity:1; transform:scale(1) translateX(0); }
+.gem-badge img { width:100%; height:100%; object-fit:cover; display:block; }
+.gem-badge:hover { transform:scale(1.12) translateX(0) !important; }
+
+/* ── REVIEW PANEL (opens from badge tap, bottom-right) ── */
+#review-panel {
+  display:none; position:fixed; z-index:500;
+  bottom:130px; right:20px;
+  background:rgba(8,22,12,0.95); backdrop-filter:blur(18px);
+  border:1px solid rgba(255,255,255,0.13); border-radius:14px;
+  padding:16px 18px 14px; width:min(260px,72vw);
+  box-shadow:0 8px 50px rgba(0,0,0,.7);
+}
+#review-panel.visible { display:block; animation:cardIn .38s cubic-bezier(.34,1.56,.64,1) forwards; }
+.review-art { width:100%; aspect-ratio:1/1; border-radius:8px; overflow:hidden; margin-bottom:10px;
+  background:rgba(255,255,255,.05); }
+.review-art img { width:100%; height:100%; object-fit:cover; display:block; }
+.review-type { font:800 7px/1 Arial; letter-spacing:.22em; text-transform:uppercase;
+  color:rgba(255,255,255,.36); margin-bottom:4px; }
+.review-title { font:900 13px/1.25 Arial; color:#fff; margin-bottom:10px; }
+#review-player { margin-bottom:10px; border-radius:6px; overflow:hidden; }
+#review-player iframe { display:block; border:0; width:100%; height:42px; border-radius:6px; }
+
 /* ── LOADING ── */
 #loading {
   position:fixed; inset:0; z-index:1000; background:#0a1a0e;
@@ -199,6 +235,19 @@ canvas { display:block; }
   <a class="card-link" id="gem-card-link" href="#" target="_blank">Listen on Bandcamp &#8599;</a>
 </div>
 
+<!-- Badge strip (collected releases, top-right) -->
+<div id="badge-strip"></div>
+
+<!-- Review panel (opens when badge is tapped) -->
+<div id="review-panel">
+  <button class="card-close" id="review-close">&#x2715;</button>
+  <div class="review-art" id="review-art"></div>
+  <div class="review-type" id="review-type"></div>
+  <div class="review-title" id="review-title"></div>
+  <div id="review-player"></div>
+  <a class="card-link" id="review-link" href="#" target="_blank">Open on Bandcamp &#8599;</a>
+</div>
+
 <!-- Mobile Joystick -->
 <div id="joystick-wrap">
   <div id="joystick-pad">
@@ -221,25 +270,25 @@ canvas { display:block; }
 // RELEASE DATA
 // ═══════════════════════════════════════════════════════════
 const GEM_DATA = [
-  {title:'Sleep Tight Baby',              type:'Album',  color:'#4ECDC4', art:'https://f4.bcbits.com/img/a1623713382_2.jpg', url:'https://rosebonica.bandcamp.com/album/sleep-tight-baby'},
-  {title:'Quicksand / Fear Me',           type:'Album',  color:'#FF729F', art:'https://f4.bcbits.com/img/a1450007863_2.jpg', url:'https://rosebonica.bandcamp.com/album/quicksand-fear-me'},
-  {title:'Nothing Lasts Forever',         type:'Album',  color:'#9D79BC', art:'https://f4.bcbits.com/img/a3712440464_2.jpg', url:'https://rosebonica.bandcamp.com/album/nothing-lasts-forever'},
-  {title:'Waiting For Change',            type:'Album',  color:'#F39237', art:'https://f4.bcbits.com/img/a0896476317_2.jpg', url:'https://rosebonica.bandcamp.com/album/waiting-for-change'},
-  {title:'Send Forgiveness / Disengage',  type:'Album',  color:'#E6F14A', art:'https://f4.bcbits.com/img/a3704722212_2.jpg', url:'https://rosebonica.bandcamp.com/album/send-forgiveness-disengage'},
-  {title:'Tears for the Tea Maker',       type:'Album',  color:'#FF729F', art:'https://f4.bcbits.com/img/a3751658746_2.jpg', url:'https://rosebonica.bandcamp.com/album/tears-for-the-tea-maker'},
-  {title:'Mouthful of Concrete',          type:'Album',  color:'#4ECDC4', art:'https://f4.bcbits.com/img/a2953841961_2.jpg', url:'https://rosebonica.bandcamp.com/album/mouthful-of-concrete'},
-  {title:"Don't Let It Get To Your Head", type:'Album',  color:'#9D79BC', art:'https://f4.bcbits.com/img/a0818661184_2.jpg', url:'https://rosebonica.bandcamp.com/album/dont-let-it-get-to-your-head'},
-  {title:'Rosy Disposition',              type:'Album',  color:'#F39237', art:'https://f4.bcbits.com/img/a0932147851_2.jpg', url:'https://rosebonica.bandcamp.com/album/rosy-disposition'},
-  {title:'Weightless',                    type:'Single', color:'#E6F14A', art:'https://f4.bcbits.com/img/a2240640416_2.jpg', url:'https://rosebonica.bandcamp.com/track/weightless'},
-  {title:'BIRDINTHEHAND',                 type:'Single', color:'#FF729F', art:'https://f4.bcbits.com/img/a0312182935_2.jpg', url:'https://rosebonica.bandcamp.com/track/birdinthehand'},
-  {title:'Fear Tactics',                  type:'Single', color:'#F39237', art:'https://f4.bcbits.com/img/a2824127204_2.jpg', url:'https://rosebonica.bandcamp.com/track/fear-tactics'},
-  {title:'Distortion Klapping',           type:'Single', color:'#4ECDC4', art:'https://f4.bcbits.com/img/a1112202340_2.jpg', url:'https://rosebonica.bandcamp.com/track/distortion-klapping'},
-  {title:'DUCKDUCKNOOSE',                 type:'Single', color:'#9D79BC', art:'https://f4.bcbits.com/img/a3715021803_2.jpg', url:'https://rosebonica.bandcamp.com/track/duckducknoose'},
-  {title:'Life Gets Too Loud',            type:'Single', color:'#E6F14A', art:'https://f4.bcbits.com/img/a3112598154_2.jpg', url:'https://rosebonica.bandcamp.com/track/life-gets-too-loud'},
-  {title:'And The Agony Was Gone',        type:'Single', color:'#FF729F', art:'https://f4.bcbits.com/img/a2883656096_2.jpg', url:'https://rosebonica.bandcamp.com/track/and-the-agony-was-gone'},
-  {title:"I'm Going Home",                type:'Single', color:'#F39237', art:'https://f4.bcbits.com/img/a1947785434_2.jpg', url:'https://rosebonica.bandcamp.com/track/im-going-home-with-spirit-of-mandiya-by-dizu-plaatjies-and-colossus-by-idles'},
-  {title:'Looking All Around the House but Everything is from the Past', type:'Single', color:'#4ECDC4', art:'https://f4.bcbits.com/img/a3380863131_2.jpg', url:'https://rosebonica.bandcamp.com/track/looking-all-around-the-house-but-everything-is-from-the-past'},
-  {title:'You Look Ugly When You Cry',    type:'Single', color:'#9D79BC', art:'https://f4.bcbits.com/img/a3076982801_2.jpg', url:'https://rosebonica.bandcamp.com/track/you-look-ugly-when-you-cry'},
+  {title:'Sleep Tight Baby',              type:'Album',  bcid:594138560,  color:'#4ECDC4', art:'https://f4.bcbits.com/img/a1623713382_2.jpg', url:'https://rosebonica.bandcamp.com/album/sleep-tight-baby'},
+  {title:'Quicksand / Fear Me',           type:'Album',  bcid:645768769,  color:'#FF729F', art:'https://f4.bcbits.com/img/a1450007863_2.jpg', url:'https://rosebonica.bandcamp.com/album/quicksand-fear-me'},
+  {title:'Nothing Lasts Forever',         type:'Album',  bcid:2729934255, color:'#9D79BC', art:'https://f4.bcbits.com/img/a3712440464_2.jpg', url:'https://rosebonica.bandcamp.com/album/nothing-lasts-forever'},
+  {title:'Waiting For Change',            type:'Album',  bcid:3659908036, color:'#F39237', art:'https://f4.bcbits.com/img/a0896476317_2.jpg', url:'https://rosebonica.bandcamp.com/album/waiting-for-change'},
+  {title:'Send Forgiveness / Disengage',  type:'Album',  bcid:3369427401, color:'#E6F14A', art:'https://f4.bcbits.com/img/a3704722212_2.jpg', url:'https://rosebonica.bandcamp.com/album/send-forgiveness-disengage'},
+  {title:'Tears for the Tea Maker',       type:'Album',  bcid:2663451250, color:'#FF729F', art:'https://f4.bcbits.com/img/a3751658746_2.jpg', url:'https://rosebonica.bandcamp.com/album/tears-for-the-tea-maker'},
+  {title:'Mouthful of Concrete',          type:'Album',  bcid:3968734164, color:'#4ECDC4', art:'https://f4.bcbits.com/img/a2953841961_2.jpg', url:'https://rosebonica.bandcamp.com/album/mouthful-of-concrete'},
+  {title:"Don't Let It Get To Your Head", type:'Album',  bcid:323517619,  color:'#9D79BC', art:'https://f4.bcbits.com/img/a0818661184_2.jpg', url:'https://rosebonica.bandcamp.com/album/dont-let-it-get-to-your-head'},
+  {title:'Rosy Disposition',              type:'Album',  bcid:2021421442, color:'#F39237', art:'https://f4.bcbits.com/img/a0932147851_2.jpg', url:'https://rosebonica.bandcamp.com/album/rosy-disposition'},
+  {title:'Weightless',                    type:'Single', bcid:1878561827, color:'#E6F14A', art:'https://f4.bcbits.com/img/a2240640416_2.jpg', url:'https://rosebonica.bandcamp.com/track/weightless'},
+  {title:'BIRDINTHEHAND',                 type:'Single', bcid:303321636,  color:'#FF729F', art:'https://f4.bcbits.com/img/a0312182935_2.jpg', url:'https://rosebonica.bandcamp.com/track/birdinthehand'},
+  {title:'Fear Tactics',                  type:'Single', bcid:4021955525, color:'#F39237', art:'https://f4.bcbits.com/img/a2824127204_2.jpg', url:'https://rosebonica.bandcamp.com/track/fear-tactics'},
+  {title:'Distortion Klapping',           type:'Single', bcid:292420037,  color:'#4ECDC4', art:'https://f4.bcbits.com/img/a1112202340_2.jpg', url:'https://rosebonica.bandcamp.com/track/distortion-klapping'},
+  {title:'DUCKDUCKNOOSE',                 type:'Single', bcid:4015514535, color:'#9D79BC', art:'https://f4.bcbits.com/img/a3715021803_2.jpg', url:'https://rosebonica.bandcamp.com/track/duckducknoose'},
+  {title:'Life Gets Too Loud',            type:'Single', bcid:3286263094, color:'#E6F14A', art:'https://f4.bcbits.com/img/a3112598154_2.jpg', url:'https://rosebonica.bandcamp.com/track/life-gets-too-loud'},
+  {title:'And The Agony Was Gone',        type:'Single', bcid:4236438356, color:'#FF729F', art:'https://f4.bcbits.com/img/a2883656096_2.jpg', url:'https://rosebonica.bandcamp.com/track/and-the-agony-was-gone'},
+  {title:"I'm Going Home",                type:'Single', bcid:1904783479, color:'#F39237', art:'https://f4.bcbits.com/img/a1947785434_2.jpg', url:'https://rosebonica.bandcamp.com/track/im-going-home-with-spirit-of-mandiya-by-dizu-plaatjies-and-colossus-by-idles'},
+  {title:'Looking All Around the House but Everything is from the Past', type:'Single', bcid:688661417,  color:'#4ECDC4', art:'https://f4.bcbits.com/img/a3380863131_2.jpg', url:'https://rosebonica.bandcamp.com/track/looking-all-around-the-house-but-everything-is-from-the-past'},
+  {title:'You Look Ugly When You Cry',    type:'Single', bcid:3036601856, color:'#9D79BC', art:'https://f4.bcbits.com/img/a3076982801_2.jpg', url:'https://rosebonica.bandcamp.com/track/you-look-ugly-when-you-cry'},
 ];
 
 // World positions [x, z] for each gem
@@ -607,15 +656,64 @@ function openCard(idx) {
   cardOpen = true;
 }
 
-function closeCard() { gemCard.classList.remove('visible'); cardOpen = false; }
+function closeCard() {
+  gemCard.classList.remove('visible');
+  cardOpen = false;
+  clearTimeout(autoCloseTimer);
+}
 
-document.getElementById('gem-card-close').addEventListener('click', e => { e.stopPropagation(); closeCard(); });
-window.addEventListener('keydown', e => { if (e.key === 'Escape') closeCard(); });
+document.getElementById('gem-card-close').addEventListener('click', e => {
+  e.stopPropagation();
+  // Manual close — spawn badge immediately if it was a fresh collection
+  const pendingIdx = gemCard.dataset.pendingIdx;
+  if (pendingIdx !== undefined) { spawnBadge(parseInt(pendingIdx)); delete gemCard.dataset.pendingIdx; }
+  closeCard();
+});
+window.addEventListener('keydown', e => { if (e.key === 'Escape') { closeCard(); closeReview(); } });
+
+// ── BADGE STRIP + REVIEW PANEL ─────────────────────────────
+const badgeStrip  = document.getElementById('badge-strip');
+const reviewPanel = document.getElementById('review-panel');
+
+function spawnBadge(idx) {
+  const d = GEM_DATA[idx];
+  const el = document.createElement('div');
+  el.className = 'gem-badge';
+  el.title = d.title;
+  el.innerHTML = d.art ? `<img src="${d.art}" alt="">` : `<div style="width:100%;height:100%;background:${d.color}44"></div>`;
+  el.style.borderColor = d.color + 'aa';
+  el.addEventListener('click', () => openReview(idx));
+  badgeStrip.prepend(el);
+  void el.offsetWidth;
+  el.classList.add('in');
+}
+
+function openReview(idx) {
+  const d = GEM_DATA[idx];
+  document.getElementById('review-art').innerHTML   = d.art ? `<img src="${d.art}" alt="">` : '';
+  document.getElementById('review-type').textContent  = d.type;
+  document.getElementById('review-title').textContent = d.title;
+  document.getElementById('review-link').href = d.url;
+  const playerEl = document.getElementById('review-player');
+  if (d.bcid) {
+    const kind = d.type === 'Album' ? 'album' : 'track';
+    playerEl.innerHTML = `<iframe src="https://bandcamp.com/EmbeddedPlayer/${kind}=${d.bcid}/size=small/bgcol=080808/linkcol=4ECDC4/transparent=true/" seamless></iframe>`;
+  } else { playerEl.innerHTML = ''; }
+  reviewPanel.classList.remove('visible');
+  void reviewPanel.offsetWidth;
+  reviewPanel.classList.add('visible');
+}
+
+function closeReview() { reviewPanel.classList.remove('visible'); }
+document.getElementById('review-close').addEventListener('click', e => { e.stopPropagation(); closeReview(); });
 
 // ═══════════════════════════════════════════════════════════
 // AMBIENT AUDIO (Web Audio API — no files needed)
 // ═══════════════════════════════════════════════════════════
 let audioCtx = null, droneOsc = null, shimmerGain = null;
+let gemVoices = null;
+let autoCloseTimer = null;
+const charVel = new THREE.Vector3();
 
 const ZONE_FREQS = [110, 98, 87, 123, 131]; // Hz per zone (drone root note)
 
@@ -658,6 +756,18 @@ function initAudio() {
     lfoGain.gain.value = 0.008;
     lfo.connect(lfoGain).connect(shimmerGain.gain);
     lfo.start();
+
+    // ── 19 gem voices: each gem has a unique harmonic tone ──
+    const FREQS = [130.8,146.8,164.8,196,220,261.6,293.7,329.6,392,440,
+                   523.3,587.3,659.3,784,880,311,415,466,987.8];
+    gemVoices = GEM_DATA.map((d, i) => {
+      const g = audioCtx.createGain(); g.gain.value = 0; g.connect(audioCtx.destination);
+      const o1 = audioCtx.createOscillator(); o1.type='sine'; o1.frequency.value=FREQS[i];
+      o1.connect(g); o1.start();
+      const o2 = audioCtx.createOscillator(); o2.type='sine'; o2.frequency.value=FREQS[i]*1.5;
+      const g2 = audioCtx.createGain(); g2.gain.value=0.38; o2.connect(g2).connect(g); o2.start();
+      return { g, alive:true };
+    });
   } catch(e) { /* audio not supported */ }
 }
 
@@ -861,17 +971,30 @@ function collectGem(idx) {
   if (mesh.userData.ring) scene.remove(mesh.userData.ring);
   scene.remove(mesh);
   scene.remove(light);
+  // Fade out this gem's voice
+  if (gemVoices?.[idx]) {
+    gemVoices[idx].g.gain.setTargetAtTime(0, audioCtx.currentTime, 0.3);
+    gemVoices[idx].alive = false;
+  }
   playCollectSound();
   $cnt.textContent = collected.size;
+  gemCard.dataset.pendingIdx = idx;  // track which gem this card belongs to
   openCard(idx);
-  if (collected.size === GEM_DATA.length) setTimeout(triggerWin, 1200);
+  // Auto-close card after 2.5s → spawn badge
+  clearTimeout(autoCloseTimer);
+  autoCloseTimer = setTimeout(() => {
+    delete gemCard.dataset.pendingIdx;
+    closeCard();
+    spawnBadge(idx);
+  }, 2500);
+  if (collected.size === GEM_DATA.length) setTimeout(triggerWin, 3800);
 }
 
 // ═══════════════════════════════════════════════════════════
 // WIN
 // ═══════════════════════════════════════════════════════════
 function triggerWin() {
-  closeCard();
+  closeCard(); closeReview();
   document.getElementById('win-screen').classList.add('show');
   // Celebratory particle shower
   for (let i = 0; i < 8; i++) {
@@ -903,39 +1026,39 @@ function animate() {
   const dt = Math.min(clock.getDelta(), 0.05);
   const t  = clock.elapsedTime;
 
-  // ─── Movement ───────────────────────────────────
-  const moveDir = new THREE.Vector3();
-
-  if (keys['KeyW'] || keys['ArrowUp'])    moveDir.z -= 1;
-  if (keys['KeyS'] || keys['ArrowDown'])  moveDir.z += 1;
-  if (keys['KeyA'] || keys['ArrowLeft'])  moveDir.x -= 1;
-  if (keys['KeyD'] || keys['ArrowRight']) moveDir.x += 1;
-
-  if (joyActive && joyDir.lengthSq() > 0.01) {
-    moveDir.add(joyDir);
-  }
-
+  // ─── Movement (velocity-based for smooth accel/decel) ──
   const SPEED = 5.8;
-  let isWalking = false;
+  const targetVel = new THREE.Vector3();
 
-  if (moveDir.lengthSq() > 0) {
-    moveDir.normalize().multiplyScalar(SPEED * dt);
-    char.position.add(moveDir);
-    char.rotation.y = Math.atan2(moveDir.x, moveDir.z);
+  if (keys['KeyW'] || keys['ArrowUp'])    targetVel.z -= 1;
+  if (keys['KeyS'] || keys['ArrowDown'])  targetVel.z += 1;
+  if (keys['KeyA'] || keys['ArrowLeft'])  targetVel.x -= 1;
+  if (keys['KeyD'] || keys['ArrowRight']) targetVel.x += 1;
+  if (joyActive && joyDir.lengthSq() > 0.01) targetVel.add(joyDir);
+
+  if (targetVel.lengthSq() > 0) {
+    targetVel.normalize().multiplyScalar(SPEED);
     clickTarget = null;
-    isWalking   = true;
     dismissHint();
   } else if (clickTarget) {
     const toT = new THREE.Vector3().subVectors(clickTarget, char.position);
     toT.y = 0;
-    if (toT.length() > 0.35) {
-      toT.normalize();
-      char.position.addScaledVector(toT, SPEED * dt);
-      char.rotation.y = Math.atan2(toT.x, toT.z);
-      isWalking = true;
-    } else {
-      clickTarget = null;
-    }
+    if (toT.length() > 0.35) targetVel.copy(toT.normalize().multiplyScalar(SPEED));
+    else clickTarget = null;
+  }
+
+  // Smooth lerp toward target velocity
+  charVel.lerp(targetVel, 0.14);
+  const isWalking = charVel.lengthSq() > 0.04;
+
+  if (isWalking) {
+    char.position.addScaledVector(charVel, dt);
+    // Shortest-path angle lerp — no snap when changing direction
+    const targetAngle = Math.atan2(charVel.x, charVel.z);
+    let dAngle = targetAngle - char.rotation.y;
+    while (dAngle >  Math.PI) dAngle -= Math.PI * 2;
+    while (dAngle < -Math.PI) dAngle += Math.PI * 2;
+    char.rotation.y += dAngle * 0.16;
   }
 
   // Clamp world bounds
@@ -957,9 +1080,8 @@ function animate() {
     torso.position.y = 1.22 + Math.sin(t * 1.3) * .016;
   }
 
-  // ─── Camera ────────────────────────────────────
-  const rotOff = CAM_OFF.clone().applyEuler(new THREE.Euler(0, char.rotation.y, 0));
-  camCur.lerp(char.position.clone().add(rotOff), 0.065);
+  // ─── Camera (fixed world-space offset — never rotates) ────
+  camCur.lerp(char.position.clone().add(CAM_OFF), 0.065);
   camera.position.copy(camCur);
   camLookAt.lerp(new THREE.Vector3(char.position.x, char.position.y + 1.4, char.position.z), 0.09);
   camera.lookAt(camLookAt);
@@ -978,7 +1100,15 @@ function animate() {
 
     const dx = char.position.x - gem.position.x;
     const dz = char.position.z - gem.position.z;
-    if (Math.sqrt(dx*dx + dz*dz) < 2.4 && !cardOpen) collectGem(i);
+    const dist2d = Math.sqrt(dx*dx + dz*dz);
+
+    // Proximity audio — gem voice swells as player approaches
+    if (audioCtx && gemVoices?.[i]?.alive) {
+      const t = Math.max(0, 1 - dist2d / 25);
+      gemVoices[i].g.gain.setTargetAtTime(t * t * 0.052, audioCtx.currentTime, 0.18);
+    }
+
+    if (dist2d < 2.4 && !cardOpen) collectGem(i);
   });
 
   // ─── Particles ─────────────────────────────────
