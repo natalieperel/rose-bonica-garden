@@ -620,17 +620,12 @@ function spawnMountain(x, z, hScale) {
 }
 
 [
-  // Central + mid-range peaks
+  // Central + mid-range peaks (album worlds kept clear — nothing within 20 units of their centres)
   [-32,-35,1.1],[22,-42,1.0],[-52,-22,0.9],[46,-28,1.2],[-22,-58,0.8],
   [36,-52,1.1],[-62,-46,1.0],[12,-66,0.9],[-42,12,0.7],[56,6,1.0],
   [-72,-12,1.2],[66,-37,0.9],[-16,-76,1.0],[28,-72,1.1],[-56,-62,0.8],
-  [2,-82,0.9],[52,-67,1.0],[-38,18,0.7],[42,22,0.8],[-66,28,0.9],
-  [18,-48,0.8],[-30,-16,0.7],[60,-50,1.1],[-48,-38,0.9],[8,-92,0.8],
-  // Album-world perimeter peaks
-  [-85,-48,1.0],[-82,-62,0.9],[-68,-65,0.8],[-90,-55,0.8],  // Rosy Disposition area
-  [ -5,-80,0.8],[-16,-92,0.9],[  7,-94,0.8],[-28,-85,0.7],  // Brain World area
-  [ 78,-52,1.0],[ 82,-64,0.9],[ 68,-68,0.8],[ 90,-58,0.8],  // Concrete World area
-  [ 28,-85,0.7],[ 38,-96,0.9],[ 16,-96,0.7],[ 48,-88,0.8],  // Water World area
+  [52,-67,1.0],[-38,18,0.7],[42,22,0.8],[-66,28,0.9],
+  [18,-48,0.8],[-30,-16,0.7],[-48,-38,0.9],
 ].forEach(([x,z,s]) => spawnMountain(x, z, s));
 
 // ── Hidden landmark: Stone Circle ──────────────────────────
@@ -952,101 +947,117 @@ function buildBrainWorld(cx, cz) {
 // ── MOUTHFUL OF CONCRETE — Brutalist World ────────────────────
 function buildConcreteWorld(cx, cz) {
   const gy = groundY(cx, cz);
-  const disc=new THREE.Mesh(new THREE.CylinderGeometry(20,20,0.12,8),
-    new THREE.MeshLambertMaterial({color:0x1a1a22,flatShading:true}));
-  disc.position.set(cx,gy+0.04,cz); scene.add(disc);
 
-  const CMATS=[0x444455,0x333344,0x555566,0x3a3a4a,0x282835].map(c=>
-    new THREE.MeshLambertMaterial({color:c,flatShading:true}));
+  // Octagonal concrete plaza (angular, not organic)
+  const plaza=new THREE.Mesh(new THREE.CylinderGeometry(22,22,0.25,8),
+    new THREE.MeshLambertMaterial({color:0x252530,flatShading:true}));
+  plaza.position.set(cx,gy+0.1,cz); scene.add(plaza);
 
-  // Brutalist pillars
-  for (let i = 0; i < 34; i++) {
-    const a=Math.random()*Math.PI*2, d=2+Math.random()*17;
-    const px=cx+Math.cos(a)*d, pz=cz+Math.sin(a)*d;
-    const w=0.4+Math.random()*1.2, h=1.5+Math.random()*6.5, dep=0.4+Math.random()*.8;
-    const pillar=new THREE.Mesh(new THREE.BoxGeometry(w,h,dep),CMATS[Math.floor(Math.random()*CMATS.length)]);
-    pillar.position.set(px,groundY(px,pz)+h/2,pz);
-    pillar.rotation.y=Math.random()*Math.PI; scene.add(pillar);
+  const C1=new THREE.MeshLambertMaterial({color:0x3a3a48,flatShading:true});
+  const C2=new THREE.MeshLambertMaterial({color:0x2a2a36,flatShading:true});
+  const C3=new THREE.MeshLambertMaterial({color:0x484858,flatShading:true});
+
+  // Three massive brutalist tower blocks at fixed positions
+  const towers=[[-8,0,4,14,3],[6,8,3,10,2.5],[-2,-9,5,12,2.2]];
+  towers.forEach(([ox,oz,w,h,d])=>{
+    const block=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),C1);
+    block.position.set(cx+ox,gy+h/2,cz+oz); scene.add(block);
+    // Horizontal ledge on each tower
+    const ledge=new THREE.Mesh(new THREE.BoxGeometry(w+1.2,0.35,d+1.2),C2);
+    ledge.position.set(cx+ox,gy+h+0.17,cz+oz); scene.add(ledge);
+    // Rubble pile at base
+    for(let r=0;r<8;r++){
+      const rs=0.2+Math.random()*.5;
+      const rb=new THREE.Mesh(new THREE.BoxGeometry(rs,rs*0.6,rs*0.8),C3);
+      rb.position.set(cx+ox+(Math.random()-.5)*(w+2),gy+rs*.3,cz+oz+(Math.random()-.5)*(d+2));
+      rb.rotation.set(0,Math.random()*Math.PI,(Math.random()-.5)*.6); scene.add(rb);
+    }
+  });
+
+  // Perimeter walls — long slabs around the plaza edge
+  [[0,19,38,2.2,.5],[0,-19,38,2.2,.5],[19,0,.5,2.2,36],[-19,0,.5,2.2,36]].forEach(([ox,oz,w,h,d])=>{
+    const wall=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),C2);
+    wall.position.set(cx+ox,gy+h/2,cz+oz); scene.add(wall);
+  });
+
+  // Scattered low barriers / bollards
+  for(let i=0;i<16;i++){
+    const a=(i/16)*Math.PI*2, d=10+Math.random()*7;
+    const bx=cx+Math.cos(a)*d, bz=cz+Math.sin(a)*d;
+    const bh=0.8+Math.random()*1.4;
+    const bol=new THREE.Mesh(new THREE.BoxGeometry(.55,bh,.55),C3);
+    bol.position.set(bx,groundY(bx,bz)+bh/2,bz); scene.add(bol);
   }
 
-  // Fallen slabs
-  for (let i = 0; i < 12; i++) {
+  // Fallen slabs / debris
+  for(let i=0;i<10;i++){
     const a=Math.random()*Math.PI*2, d=4+Math.random()*14;
     const sx=cx+Math.cos(a)*d, sz=cz+Math.sin(a)*d;
-    const slab=new THREE.Mesh(new THREE.BoxGeometry(2+Math.random()*3,.18+Math.random()*.12,.8+Math.random()*1.2),
-      CMATS[Math.floor(Math.random()*CMATS.length)]);
+    const slab=new THREE.Mesh(new THREE.BoxGeometry(2.5+Math.random()*3,.22,.8+Math.random()*1.4),C2);
     slab.position.set(sx,groundY(sx,sz)+.12,sz);
-    slab.rotation.set((Math.random()-.5)*.28,Math.random()*Math.PI,(Math.random()-.5)*.2); scene.add(slab);
+    slab.rotation.set((Math.random()-.5)*.3,Math.random()*Math.PI,(Math.random()-.5)*.25); scene.add(slab);
   }
 
-  // Glowing neon fissure cracks
-  const FMAT=new THREE.MeshLambertMaterial({color:0x4ECDC4,emissive:new THREE.Color(0x4ECDC4),emissiveIntensity:.95});
-  for (let i = 0; i < 10; i++) {
-    const a=Math.random()*Math.PI*2, d=Math.random()*15;
+  // Glowing teal neon fissure cracks in the ground
+  const FMAT=new THREE.MeshLambertMaterial({color:0x4ECDC4,emissive:new THREE.Color(0x4ECDC4),emissiveIntensity:.98});
+  for(let i=0;i<12;i++){
+    const a=Math.random()*Math.PI*2, d=Math.random()*18;
     const fx=cx+Math.cos(a)*d, fz=cz+Math.sin(a)*d;
-    const fissure=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.04,1.4+Math.random()*2.5),FMAT);
+    const fissure=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.05,1.5+Math.random()*3),FMAT);
     fissure.position.set(fx,groundY(fx,fz)+.04,fz);
     fissure.rotation.y=Math.random()*Math.PI; scene.add(fissure);
   }
 
-  // Monolith centrepiece — giant slab
-  const mono=new THREE.Mesh(new THREE.BoxGeometry(1.2,8,0.55),
-    new THREE.MeshLambertMaterial({color:0x222233,flatShading:true}));
-  mono.position.set(cx,gy+4,cz); mono.rotation.y=Math.PI*.15; scene.add(mono);
-
-  const pl1=new THREE.PointLight(0x7799bb,3.2,44); pl1.position.set(cx,10,cz); scene.add(pl1);
-  const pl2=new THREE.PointLight(0x4ECDC4,2.0,22); pl2.position.set(cx-5,5,cz+5); scene.add(pl2);
+  // No flowers — concrete world is dead
+  const pl1=new THREE.PointLight(0x7799bb,4.5,52); pl1.position.set(cx,12,cz); scene.add(pl1);
+  const pl2=new THREE.PointLight(0x4ECDC4,2.8,26); pl2.position.set(cx-6,6,cz+6); scene.add(pl2);
+  const pl3=new THREE.PointLight(0x556677,2.2,30); pl3.position.set(cx+8,4,cz-8); scene.add(pl3);
 }
 
 // ── TEARS FOR THE TEA MAKER — Water World ─────────────────────
 function buildWaterWorld(cx, cz) {
   const gy = groundY(cx, cz);
-  const disc=new THREE.Mesh(new THREE.CylinderGeometry(20,20,0.08,24),
-    new THREE.MeshLambertMaterial({color:0x020a18,emissive:new THREE.Color(0x0a3060),emissiveIntensity:.32}));
-  disc.position.set(cx,gy+0.02,cz); scene.add(disc);
 
-  // Concentric ripple rings
-  for (let r = 2.5; r <= 19; r += 2.7) {
-    const ring=new THREE.Mesh(new THREE.CylinderGeometry(r,r,0.04+r*.01,32,1,true),
-      new THREE.MeshLambertMaterial({color:0x1a88cc,emissive:new THREE.Color(0x0a4488),emissiveIntensity:.42,
-        side:THREE.DoubleSide,transparent:true,opacity:.5}));
-    ring.position.set(cx,gy+0.03+r*.035,cz); scene.add(ring);
-  }
+  // Animated wave plane — vertices displaced each frame in animate loop
+  const waterGeo = new THREE.PlaneGeometry(44, 44, 24, 24);
+  waterGeo.rotateX(-Math.PI / 2); // bakes rotation: getX/getZ = world XZ, getY = height
+  const waterMesh = new THREE.Mesh(waterGeo,
+    new THREE.MeshLambertMaterial({color:0x0055aa,emissive:new THREE.Color(0x002244),
+      emissiveIntensity:.45, transparent:true, opacity:.88}));
+  waterMesh.position.set(cx, gy+0.1, cz);
+  scene.add(waterMesh);
+  window._waterMesh = waterMesh;
+  window._waterGeoPos = waterGeo.attributes.position;
 
-  // Droplet towers
+  // Droplet towers around perimeter
   for (let i = 0; i < 20; i++) {
-    const a=Math.random()*Math.PI*2, d=3+Math.random()*16;
+    const a=Math.random()*Math.PI*2, d=10+Math.random()*10;
     const dx=cx+Math.cos(a)*d, dz=cz+Math.sin(a)*d;
-    const h=1.0+Math.random()*3.5;
+    const h=1.5+Math.random()*4;
     const grp=new THREE.Group();
-    const ds=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.14,h,6),
+    const ds=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.16,h,6),
       new THREE.MeshLambertMaterial({color:0x1a88cc,flatShading:true}));
     ds.position.y=h/2; grp.add(ds);
-    const rs=0.2+Math.random()*.2;
+    const rs=0.22+Math.random()*.22;
     const drop=new THREE.Mesh(new THREE.SphereGeometry(rs,7,6),
-      new THREE.MeshLambertMaterial({color:0x22aadd,emissive:new THREE.Color(0x0a5588),emissiveIntensity:.52,flatShading:true}));
+      new THREE.MeshLambertMaterial({color:0x22aadd,emissive:new THREE.Color(0x0a5588),emissiveIntensity:.55,flatShading:true}));
     drop.position.y=h+rs; grp.add(drop);
     grp.position.set(dx,groundY(dx,dz),dz); scene.add(grp);
   }
 
-  // Central reflective pool
-  const pool=new THREE.Mesh(new THREE.CylinderGeometry(4,4,0.1,18),
-    new THREE.MeshLambertMaterial({color:0x0066aa,emissive:new THREE.Color(0x0055aa),emissiveIntensity:.72}));
-  pool.position.set(cx,gy+.05,cz); scene.add(pool);
-
-  // Blue/teal flowers — mix of rich + simple
+  // Blue/teal flowers at water's edge
   const WFC=[0x22aadd,0x00ccdd,0x4ECDC4,0x0088bb,0x33bbcc,0xaaeeff,0x55ddff];
-  for (let i = 0; i < 60; i++) {
-    const a=Math.random()*Math.PI*2, d=Math.random()*17;
-    spawnFlowerRich(cx+Math.cos(a)*d,cz+Math.sin(a)*d,WFC[Math.floor(Math.random()*WFC.length)],0.5+Math.random()*1.2);
+  for (let i = 0; i < 50; i++) {
+    const a=Math.random()*Math.PI*2, d=16+Math.random()*6;
+    spawnFlowerRich(cx+Math.cos(a)*d,cz+Math.sin(a)*d,WFC[Math.floor(Math.random()*WFC.length)],0.5+Math.random()*1.0);
   }
-  for (let i = 0; i < 90; i++) {
-    const a=Math.random()*Math.PI*2, d=Math.random()*17;
+  for (let i = 0; i < 70; i++) {
+    const a=Math.random()*Math.PI*2, d=17+Math.random()*5;
     spawnFlower(cx+Math.cos(a)*d,cz+Math.sin(a)*d,WFC[Math.floor(Math.random()*WFC.length)]);
   }
 
-  const pl1=new THREE.PointLight(0x2299dd,4.2,48); pl1.position.set(cx,9,cz); scene.add(pl1);
-  const pl2=new THREE.PointLight(0x00ccdd,2.6,28); pl2.position.set(cx+6,5,cz-5); scene.add(pl2);
+  const pl1=new THREE.PointLight(0x2299dd,5.0,52); pl1.position.set(cx,9,cz); scene.add(pl1);
+  const pl2=new THREE.PointLight(0x00ccdd,3.0,30); pl2.position.set(cx+8,5,cz-6); scene.add(pl2);
 }
 
 // ── Flower trail leading to secret garden ───────────────────
@@ -1842,6 +1853,19 @@ const CAM_OFF   = new THREE.Vector3(0, 8, 13);
 // Dynamic zoom-out in peaky terrain
 let camZoom = 0;       // 0 = normal, 1 = fully zoomed out
 let peakFrame = 0;     // throttle the terrain sampling
+// 360° orbit
+let camYaw = 0;
+let _orbitActive = false, _orbitLastX = 0;
+renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
+renderer.domElement.addEventListener('pointerdown', e => {
+  if (e.button === 2) { _orbitActive = true; _orbitLastX = e.clientX; }
+}, true);
+window.addEventListener('pointermove', e => {
+  if (!_orbitActive) return;
+  camYaw -= (e.clientX - _orbitLastX) * 0.006;
+  _orbitLastX = e.clientX;
+});
+window.addEventListener('pointerup', e => { if (e.button === 2) _orbitActive = false; });
 
 // ═══════════════════════════════════════════════════════════
 // MAIN LOOP
@@ -1862,6 +1886,9 @@ function animate() {
   if (keys['KeyS'] || keys['ArrowDown'])  targetVel.z += 1;
   if (keys['KeyA'] || keys['ArrowLeft'])  targetVel.x -= 1;
   if (keys['KeyD'] || keys['ArrowRight']) targetVel.x += 1;
+  // Q/E orbit camera
+  if (keys['KeyQ']) camYaw += dt * 1.4;
+  if (keys['KeyE']) camYaw -= dt * 1.4;
   if (joyActive && joyDir.lengthSq() > 0.01) targetVel.add(joyDir);
 
   if (targetVel.lengthSq() > 0) {
@@ -1940,7 +1967,12 @@ function animate() {
   // Lerp between normal offset and zoomed-out offset
   const dynY  = 8  + camZoom * 9;   // up to +9 units higher
   const dynZ  = 13 + camZoom * 14;  // up to +14 units further back
-  const dynOff = new THREE.Vector3(0, dynY, dynZ);
+  // Orbit: rotate camera offset around character by camYaw
+  const dynOff = new THREE.Vector3(
+    Math.sin(camYaw) * dynZ,
+    dynY,
+    Math.cos(camYaw) * dynZ
+  );
   camCur.lerp(char.position.clone().add(dynOff), 0.055);
   camera.position.copy(camCur);
   // Look slightly higher when zoomed out so the character stays in frame
@@ -1978,6 +2010,18 @@ function animate() {
 
   // ─── World petals ───────────────────────────────
   tickWorldPetals(dt);
+
+  // ─── Water world waves ──────────────────────────
+  if (window._waterMesh) {
+    const wp = window._waterGeoPos;
+    for (let i = 0; i < wp.count; i++) {
+      const wx = wp.getX(i), wz = wp.getZ(i);
+      wp.setY(i, Math.sin(t*0.9 + wx*0.38 + wz*0.28)*0.38
+              + Math.cos(t*0.6  - wx*0.22 + wz*0.41)*0.22);
+    }
+    wp.needsUpdate = true;
+    window._waterMesh.geometry.computeVertexNormals();
+  }
 
   // ─── Zones + atmosphere ─────────────────────────
   checkZones(char.position.x, char.position.z);
