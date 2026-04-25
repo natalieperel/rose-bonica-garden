@@ -1882,14 +1882,23 @@ function animate() {
   const SPEED = 5.8;
   const targetVel = new THREE.Vector3();
 
-  if (keys['KeyW'] || keys['ArrowUp'])    targetVel.z -= 1;
-  if (keys['KeyS'] || keys['ArrowDown'])  targetVel.z += 1;
-  if (keys['KeyA'] || keys['ArrowLeft'])  targetVel.x -= 1;
-  if (keys['KeyD'] || keys['ArrowRight']) targetVel.x += 1;
+  // Camera-relative movement — forward/right rotate with camYaw so controls
+  // always match what the player sees, regardless of orbit angle.
+  const sinY = Math.sin(camYaw), cosY = Math.cos(camYaw);
+  // Camera forward in world XZ: (-sinY, 0, -cosY)
+  // Camera right  in world XZ: ( cosY, 0, -sinY)
+  if (keys['KeyW'] || keys['ArrowUp'])    { targetVel.x -= sinY; targetVel.z -= cosY; }
+  if (keys['KeyS'] || keys['ArrowDown'])  { targetVel.x += sinY; targetVel.z += cosY; }
+  if (keys['KeyA'] || keys['ArrowLeft'])  { targetVel.x -= cosY; targetVel.z += sinY; }
+  if (keys['KeyD'] || keys['ArrowRight']) { targetVel.x += cosY; targetVel.z -= sinY; }
   // Q/E orbit camera
   if (keys['KeyQ']) camYaw += dt * 1.4;
   if (keys['KeyE']) camYaw -= dt * 1.4;
-  if (joyActive && joyDir.lengthSq() > 0.01) targetVel.add(joyDir);
+  // Joystick: rotate raw screen-space X/Z by camYaw so it matches camera facing
+  if (joyActive && joyDir.lengthSq() > 0.01) {
+    targetVel.x += joyDir.x * cosY + joyDir.z * sinY;
+    targetVel.z += -joyDir.x * sinY + joyDir.z * cosY;
+  }
 
   if (targetVel.lengthSq() > 0) {
     targetVel.normalize().multiplyScalar(SPEED);
