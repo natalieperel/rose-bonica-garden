@@ -557,6 +557,9 @@ for (let i = 0; i < gp.count; i++) {
         + Math.cos(x * 0.21 + z * 0.18) * 0.4
         + (Math.random() - 0.5) * 0.35;
   y *= Math.min(1, Math.sqrt(x * x + z * z) / 9);
+  // Cliff mountain for Mouthful of Concrete — walkable slope, flat summit
+  const dMoC = Math.hypot(x - 72, z + 58);
+  if (dMoC < 32) { const mt = Math.max(0, 1 - dMoC / 32); y += mt * mt * 11; }
   gp.setY(i, y);
 }
 groundGeo.computeVertexNormals();
@@ -944,74 +947,108 @@ function buildBrainWorld(cx, cz) {
   const pl2=new THREE.PointLight(0xdd22aa,2.4,26); pl2.position.set(cx+6,5,cz-4); scene.add(pl2);
 }
 
-// ── MOUTHFUL OF CONCRETE — Brutalist World ────────────────────
+// ── MOUTHFUL OF CONCRETE — Ink-Wash Cliff World ───────────────
+function spawnCliffTree(tx, tz, height) {
+  const tgy = groundY(tx, tz);
+  if (isNaN(tgy)) return;
+  const bark = new THREE.MeshLambertMaterial({color:0x0e0c06,flatShading:true});
+  const grp = new THREE.Group();
+  grp.position.set(tx, tgy, tz);
+
+  // Trunk — slightly leaning
+  const tk = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.14,height,5), bark);
+  tk.position.y = height/2;
+  tk.rotation.z = (Math.random()-0.5)*0.22;
+  grp.add(tk);
+
+  // Branches — gnarled, outward-sweeping
+  const nb = 3 + Math.floor(Math.random()*4);
+  for(let b=0; b<nb; b++){
+    const bpy = height*(0.30 + b*0.14 + Math.random()*0.06);
+    const blen = height*(0.28 + Math.random()*0.46);
+    const bGrp = new THREE.Group();
+    bGrp.position.y = bpy;
+    bGrp.rotation.y = Math.random()*Math.PI*2;
+    bGrp.rotation.z = -(0.5 + Math.random()*0.7);
+    const br = new THREE.Mesh(new THREE.CylinderGeometry(0.01,0.04,blen,4), bark);
+    br.position.y = blen/2;
+    bGrp.add(br);
+    // Red blossoms at tip
+    const bc = 3 + Math.floor(Math.random()*6);
+    for(let k=0; k<bc; k++){
+      const blos = new THREE.Mesh(
+        new THREE.SphereGeometry(0.09+Math.random()*0.14,5,4),
+        new THREE.MeshLambertMaterial({
+          color: new THREE.Color().setHSL(0.97+Math.random()*0.04, 0.78, 0.30+Math.random()*0.14),
+          emissive: new THREE.Color(0x1a0406), emissiveIntensity:0.35, flatShading:true
+        })
+      );
+      blos.position.set((Math.random()-0.5)*0.7, blen+(Math.random()-0.5)*0.5, (Math.random()-0.5)*0.7);
+      bGrp.add(blos);
+    }
+    grp.add(bGrp);
+  }
+  scene.add(grp);
+}
+
 function buildConcreteWorld(cx, cz) {
   const gy = groundY(cx, cz);
 
-  // Octagonal concrete plaza (angular, not organic)
-  const plaza=new THREE.Mesh(new THREE.CylinderGeometry(22,22,0.25,8),
-    new THREE.MeshLambertMaterial({color:0x252530,flatShading:true}));
-  plaza.position.set(cx,gy+0.1,cz); scene.add(plaza);
 
-  const C1=new THREE.MeshLambertMaterial({color:0x3a3a48,flatShading:true});
-  const C2=new THREE.MeshLambertMaterial({color:0x2a2a36,flatShading:true});
-  const C3=new THREE.MeshLambertMaterial({color:0x484858,flatShading:true});
-
-  // Three massive brutalist tower blocks at fixed positions
-  const towers=[[-8,0,4,14,3],[6,8,3,10,2.5],[-2,-9,5,12,2.2]];
-  towers.forEach(([ox,oz,w,h,d])=>{
-    const block=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),C1);
-    block.position.set(cx+ox,gy+h/2,cz+oz); scene.add(block);
-    // Horizontal ledge on each tower
-    const ledge=new THREE.Mesh(new THREE.BoxGeometry(w+1.2,0.35,d+1.2),C2);
-    ledge.position.set(cx+ox,gy+h+0.17,cz+oz); scene.add(ledge);
-    // Rubble pile at base
-    for(let r=0;r<8;r++){
-      const rs=0.2+Math.random()*.5;
-      const rb=new THREE.Mesh(new THREE.BoxGeometry(rs,rs*0.6,rs*0.8),C3);
-      rb.position.set(cx+ox+(Math.random()-.5)*(w+2),gy+rs*.3,cz+oz+(Math.random()-.5)*(d+2));
-      rb.rotation.set(0,Math.random()*Math.PI,(Math.random()-.5)*.6); scene.add(rb);
+  // Dramatic cliff spires around the plateau
+  const CK1 = new THREE.MeshLambertMaterial({color:0x1a2430,flatShading:true});
+  const CK2 = new THREE.MeshLambertMaterial({color:0x242e3c,flatShading:true});
+  [[-10,-7,4.5,22],[8,9,3.8,18],[-5,6,3.2,15],[12,-4,4.0,20],
+   [-14,2,2.8,16],[3,-12,3.5,19],[16,6,2.6,14],[-8,-14,3.0,17]
+  ].forEach(([ox,oz,r,h])=>{
+    const sg = new THREE.CylinderGeometry(r*0.75,r*1.15,h,6,2);
+    const sp = sg.attributes.position;
+    for(let v=0;v<sp.count;v++){
+      if(sp.getY(v) < h*0.85){
+        sp.setX(v, sp.getX(v)+(Math.random()-0.5)*r*0.4);
+        sp.setZ(v, sp.getZ(v)+(Math.random()-0.5)*r*0.4);
+      }
     }
+    sg.computeVertexNormals();
+    const spire = new THREE.Mesh(sg, Math.random()>0.5?CK1:CK2);
+    spire.position.set(cx+ox, gy+h/2-3, cz+oz);
+    spire.castShadow = true; scene.add(spire);
   });
 
-  // Perimeter walls — long slabs around the plaza edge
-  [[0,19,38,2.2,.5],[0,-19,38,2.2,.5],[19,0,.5,2.2,36],[-19,0,.5,2.2,36]].forEach(([ox,oz,w,h,d])=>{
-    const wall=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),C2);
-    wall.position.set(cx+ox,gy+h/2,cz+oz); scene.add(wall);
-  });
+  // Mist planes drifting between spires
+  const mistMat = new THREE.MeshBasicMaterial({color:0xc0d4dc,transparent:true,opacity:0.09,side:THREE.DoubleSide});
+  for(let i=0;i<6;i++){
+    const a=(i/6)*Math.PI*2;
+    const d=8+Math.random()*8;
+    const mist = new THREE.Mesh(new THREE.PlaneGeometry(10+Math.random()*8,3+Math.random()*2), mistMat);
+    mist.position.set(cx+Math.cos(a)*d, gy+4+Math.random()*4, cz+Math.sin(a)*d);
+    mist.rotation.y = a+Math.PI/2; scene.add(mist);
+  }
 
-  // Scattered low barriers / bollards
-  for(let i=0;i<16;i++){
-    const a=(i/16)*Math.PI*2, d=10+Math.random()*7;
+  // Twisted ink-wash trees with crimson blossoms
+  for(let i=0;i<18;i++){
+    const a=(i/18)*Math.PI*2+Math.random()*0.4;
+    const d=5+Math.random()*20;
+    spawnCliffTree(cx+Math.cos(a)*d, cz+Math.sin(a)*d, 2+Math.random()*5);
+  }
+
+  // Scattered boulders
+  for(let i=0;i<22;i++){
+    const a=Math.random()*Math.PI*2, d=Math.random()*22;
     const bx=cx+Math.cos(a)*d, bz=cz+Math.sin(a)*d;
-    const bh=0.8+Math.random()*1.4;
-    const bol=new THREE.Mesh(new THREE.BoxGeometry(.55,bh,.55),C3);
-    bol.position.set(bx,groundY(bx,bz)+bh/2,bz); scene.add(bol);
+    const bs=0.3+Math.random()*1.3;
+    const boulderGY = groundY(bx,bz);
+    const boulder = new THREE.Mesh(
+      new THREE.SphereGeometry(bs,5,4),
+      new THREE.MeshLambertMaterial({color:new THREE.Color().setHSL(0.59,0.10,0.10+Math.random()*0.12),flatShading:true})
+    );
+    boulder.position.set(bx,(isNaN(boulderGY)?gy:boulderGY)+bs*0.5,bz); scene.add(boulder);
   }
 
-  // Fallen slabs / debris
-  for(let i=0;i<10;i++){
-    const a=Math.random()*Math.PI*2, d=4+Math.random()*14;
-    const sx=cx+Math.cos(a)*d, sz=cz+Math.sin(a)*d;
-    const slab=new THREE.Mesh(new THREE.BoxGeometry(2.5+Math.random()*3,.22,.8+Math.random()*1.4),C2);
-    slab.position.set(sx,groundY(sx,sz)+.12,sz);
-    slab.rotation.set((Math.random()-.5)*.3,Math.random()*Math.PI,(Math.random()-.5)*.25); scene.add(slab);
-  }
-
-  // Glowing teal neon fissure cracks in the ground
-  const FMAT=new THREE.MeshLambertMaterial({color:0x4ECDC4,emissive:new THREE.Color(0x4ECDC4),emissiveIntensity:.98});
-  for(let i=0;i<12;i++){
-    const a=Math.random()*Math.PI*2, d=Math.random()*18;
-    const fx=cx+Math.cos(a)*d, fz=cz+Math.sin(a)*d;
-    const fissure=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.05,1.5+Math.random()*3),FMAT);
-    fissure.position.set(fx,groundY(fx,fz)+.04,fz);
-    fissure.rotation.y=Math.random()*Math.PI; scene.add(fissure);
-  }
-
-  // No flowers — concrete world is dead
-  const pl1=new THREE.PointLight(0x7799bb,4.5,52); pl1.position.set(cx,12,cz); scene.add(pl1);
-  const pl2=new THREE.PointLight(0x4ECDC4,2.8,26); pl2.position.set(cx-6,6,cz+6); scene.add(pl2);
-  const pl3=new THREE.PointLight(0x556677,2.2,30); pl3.position.set(cx+8,4,cz-8); scene.add(pl3);
+  // Atmospheric grey-blue lighting
+  const pl1=new THREE.PointLight(0x8aaabb,3.8,55); pl1.position.set(cx,gy+12,cz); scene.add(pl1);
+  const pl2=new THREE.PointLight(0xbbd0d8,2.2,28); pl2.position.set(cx-8,gy+7,cz+8); scene.add(pl2);
+  const pl3=new THREE.PointLight(0x667788,1.8,32); pl3.position.set(cx+10,gy+5,cz-6); scene.add(pl3);
 }
 
 // ── TEARS FOR THE TEA MAKER — Water World ─────────────────────
@@ -1624,7 +1661,7 @@ const ZONES = [
   // Album worlds
   { name:'✦ ROSY DISPOSITION ✦',          cx:-75, cz:-55,  r:24, fog:0x1e0008, amb:0xcc1133, bg:0x1e0008 },
   { name:"✦ DON'T LET IT GET TO YOU ✦",  cx:-35, cz:-88,  r:24, fog:0x1a0820, amb:0xff44bb, bg:0x1a0820 },
-  { name:'✦ MOUTHFUL OF CONCRETE ✦',      cx: 72, cz:-58,  r:24, fog:0x0d0f18, amb:0x7799aa, bg:0x0d0f18 },
+  { name:'✦ MOUTHFUL OF CONCRETE ✦',      cx: 72, cz:-58,  r:34, fog:0x101820, amb:0xaabec8, bg:0x101820 },
   { name:'✦ TEARS FOR THE TEA MAKER ✦',   cx: 52, cz:-92,  r:24, fog:0x020a18, amb:0x22aadd, bg:0x020a18 },
 ];
 let curZone = -1;
