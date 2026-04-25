@@ -408,7 +408,7 @@ canvas { display:block; }
 
 <!-- HUD -->
 <a href="index.html" id="back-link">← Garden</a>
-<div id="gem-counter">Gems &nbsp;<b id="gem-count">0</b>&thinsp;/&thinsp;19</div>
+<div id="gem-counter">Gems &nbsp;<b id="gem-count">0</b>&thinsp;/&thinsp;18</div>
 <div id="controls-hint">WASD · arrows · click to move &nbsp;·&nbsp; walk into gems to collect</div>
 <div id="zone-label"></div>
 <div id="zone-pill" id="zone-pill"></div>
@@ -461,7 +461,7 @@ canvas { display:block; }
 
 <!-- Win Screen -->
 <div id="win-screen">
-  <div class="win-badge">✦ all 19 gems found ✦</div>
+  <div class="win-badge">✦ all 18 gems found ✦</div>
   <h2>You explored the whole garden.</h2>
   <p>Rose Bonica's full discography — now yours to discover.</p>
   <a href="https://rosebonica.bandcamp.com" target="_blank" class="win-link">Full Discography &#8599;</a>
@@ -478,7 +478,6 @@ const GEM_DATA = [
   {title:'Sleep Tight Baby',              type:'Album',  bcid:594138560,  color:'#4ECDC4', art:'https://f4.bcbits.com/img/a1623713382_2.jpg', url:'https://rosebonica.bandcamp.com/album/sleep-tight-baby'},
   {title:'Quicksand / Fear Me',           type:'Album',  bcid:645768769,  color:'#FF729F', art:'https://f4.bcbits.com/img/a1450007863_2.jpg', url:'https://rosebonica.bandcamp.com/album/quicksand-fear-me'},
   {title:'Nothing Lasts Forever',         type:'Album',  bcid:2729934255, color:'#9D79BC', art:'https://f4.bcbits.com/img/a3712440464_2.jpg', url:'https://rosebonica.bandcamp.com/album/nothing-lasts-forever'},
-  {title:'Waiting For Change',            type:'Album',  bcid:3659908036, color:'#F39237', art:'https://f4.bcbits.com/img/a0896476317_2.jpg', url:'https://rosebonica.bandcamp.com/album/waiting-for-change'},
   {title:'Send Forgiveness / Disengage',  type:'Album',  bcid:3369427401, color:'#E6F14A', art:'https://f4.bcbits.com/img/a3704722212_2.jpg', url:'https://rosebonica.bandcamp.com/album/send-forgiveness-disengage'},
   {title:'Tears for the Tea Maker',       type:'Album',  bcid:2663451250, color:'#FF729F', art:'https://f4.bcbits.com/img/a3751658746_2.jpg', url:'https://rosebonica.bandcamp.com/album/tears-for-the-tea-maker'},
   {title:'Mouthful of Concrete',          type:'Album',  bcid:3968734164, color:'#4ECDC4', art:'https://f4.bcbits.com/img/a2953841961_2.jpg', url:'https://rosebonica.bandcamp.com/album/mouthful-of-concrete'},
@@ -500,7 +499,7 @@ const GEM_DATA = [
 // Albums 0-4: central valley  |  Albums 5-8: their own worlds far out
 // Singles 9-18: trail markers leading toward each album world
 const GEM_POS = [
-  [  7, -11], [-11, -17], [ 17, -21], [ -4, -29], [ 23, -15],  // 0-4  albums: central valley
+  [  7, -11], [-11, -17], [ 17, -21], [ 23, -15],              // 0-3  albums: central valley
   [ 52, -92], [ 72, -58], [-35, -88], [-75, -55], [ 12,  -7],  // 5-8  album worlds + 9 starter single
   [-38, -20], [-58, -40], [  4, -55], [ 40, -30], [ -8, -72],  // 10-14 singles: trails NW / S / NE
   [ 60, -46], [ 16, -65], [ 28, -78], [-18, -75], [ 44, -82],  // 15-18 singles: trails deeper
@@ -1644,7 +1643,7 @@ function drawMinimap() {
   mm.font = '700 7px Arial';
   mm.letterSpacing = '1px';
   mm.textAlign = 'center';
-  mm.fillText(`${collected.size}/19`, MM_W/2, MM_H - 8);
+  mm.fillText(`${collected.size}/18`, MM_W/2, MM_H - 8);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1841,7 +1840,7 @@ function generateShareCard() {
   // Title
   x.font='900 54px Arial'; x.fillStyle='#fff'; x.textAlign='center';
   x.shadowColor='#9D79BC'; x.shadowBlur=28;
-  x.fillText('I found all 19 gems', W/2, 100); x.shadowBlur=0;
+  x.fillText('I found all 18 gems', W/2, 100); x.shadowBlur=0;
   x.font='700 24px Arial'; x.fillStyle='rgba(255,255,255,.5)';
   x.fillText('Rose Bonica · Garden of Gems', W/2, 142);
   // Gem grid (5 cols × 4 rows)
@@ -1869,7 +1868,7 @@ function generateShareCard() {
   c.toBlob(blob=>{
     const file=new File([blob],'rose-bonica-gems.png',{type:'image/png'});
     if(navigator.canShare?.({files:[file]})){
-      navigator.share({title:'Rose Bonica',text:'I found all 19 gems!',files:[file]}).catch(()=>dlCard(c));
+      navigator.share({title:'Rose Bonica',text:'I found all 18 gems!',files:[file]}).catch(()=>dlCard(c));
     } else { dlCard(c); }
   });
 }
