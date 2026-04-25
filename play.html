@@ -679,28 +679,28 @@ buildWaterWorld(25, -92);
 
 // ── Trails to each album world ───────────────────────────────
 (function spawnAlbumTrails() {
+  // Simple flowers only on trails — rich flowers are 8 meshes each, too heavy for long paths
   function trail(sx, sz, ex, ez, steps, colArr) {
     for (let i = 0; i < steps; i++) {
       const t = i / steps;
       const ox = Math.sin(t*Math.PI*2.2)*4, oz = Math.cos(t*Math.PI*1.7)*3;
       const x = sx+(ex-sx)*t+ox, z = sz+(ez-sz)*t+oz;
-      const density = Math.ceil(1 + t*3);
+      // Sparse early, denser near the destination
+      const density = t < 0.3 ? 1 : t < 0.7 ? 2 : 3;
       for (let j = 0; j < density; j++) {
         const col = colArr[Math.floor(Math.random()*colArr.length)];
-        const jx = x+(Math.random()-.5)*4, jz = z+(Math.random()-.5)*4;
-        if (t > 0.65) spawnFlowerRich(jx,jz,col,0.7+Math.random()*.8);
-        else spawnFlower(jx,jz,col);
+        spawnFlower(x+(Math.random()-.5)*5, z+(Math.random()-.5)*5, col);
       }
     }
   }
-  // NW trail → Rosy Disposition (spooky reds/blacks)
-  trail(0,-8,-75,-55, 42, [0xcc0022,0x8b0020,0xff1133,0xaa0033,0x660011]);
-  // S trail → Brain World (pinks/magentas)
-  trail(0,-10,-6,-88, 45, [0xff88cc,0xff44bb,0xdd55aa,0xff2d78,0xffb3d1]);
-  // NE trail → Mouthful of Concrete (grey/teal accents)
-  trail(0,-8,72,-58, 40, [0x888899,0x4ECDC4,0x667788,0x9999aa,0x4ECDC4]);
-  // Far-S trail → Tears for Tea Maker (blues/teals)
-  trail(0,-10,25,-92, 48, [0x22aadd,0x00ccdd,0x4ECDC4,0x0088bb,0x33bbcc]);
+  // NW trail → Rosy Disposition
+  trail(0,-8,-75,-55, 38, [0xcc0022,0x8b0020,0xff1133,0xaa0033,0x660011]);
+  // S trail → Brain World
+  trail(0,-10,-6,-88, 40, [0xff88cc,0xff44bb,0xdd55aa,0xff2d78,0xffb3d1]);
+  // NE trail → Mouthful of Concrete
+  trail(0,-8,72,-58, 36, [0x888899,0x4ECDC4,0x667788,0x9999aa,0x4ECDC4]);
+  // Far-S trail → Tears for Tea Maker
+  trail(0,-10,25,-92, 42, [0x22aadd,0x00ccdd,0x4ECDC4,0x0088bb,0x33bbcc]);
 })();
 
 // ═══════════════════════════════════════════════════════════
@@ -859,22 +859,29 @@ function buildRosyDisposition(cx, cz) {
     grp.position.set(tx, groundY(tx,tz), tz); scene.add(grp);
   }
 
-  // Dense dark roses
+  // Dark roses (kept lean — rich flowers are 8 meshes each)
   const ROSE_COLS=[0xcc0022,0x8b0020,0xff1133,0x660011,0xaa0033,0x3d0010,0xff2244];
-  for (let i = 0; i < 300; i++) {
+  for (let i = 0; i < 80; i++) {
     const a=Math.random()*Math.PI*2, d=Math.random()*17;
     const col=ROSE_COLS[Math.floor(Math.random()*ROSE_COLS.length)];
     spawnFlowerRich(cx+Math.cos(a)*d+(Math.random()-.5)*2, cz+Math.sin(a)*d+(Math.random()-.5)*2, col, 0.6+Math.random()*1.5);
+  }
+  // Simple roses to fill space cheaply
+  for (let i = 0; i < 120; i++) {
+    const a=Math.random()*Math.PI*2, d=Math.random()*17;
+    spawnFlower(cx+Math.cos(a)*d, cz+Math.sin(a)*d, ROSE_COLS[Math.floor(Math.random()*ROSE_COLS.length)]);
   }
 
   // Thorny spiked pillars at perimeter
   for (let i = 0; i < 13; i++) {
     const a=(i/13)*Math.PI*2, px=cx+Math.cos(a)*17, pz=cz+Math.sin(a)*17;
     const grp=new THREE.Group(), h=2.2+Math.random()*2;
-    grp.add(Object.assign(new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.22,h,5),
-      new THREE.MeshLambertMaterial({color:0x1e0a06,flatShading:true})), {position:{x:0,y:h/2,z:0}}));
-    grp.add(Object.assign(new THREE.Mesh(new THREE.ConeGeometry(0.14,0.65,4),
-      new THREE.MeshLambertMaterial({color:0x1a0806,flatShading:true})), {position:{x:0,y:h+.32,z:0}}));
+    const shaft=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.22,h,5),
+      new THREE.MeshLambertMaterial({color:0x1e0a06,flatShading:true}));
+    shaft.position.y=h/2; grp.add(shaft);
+    const spike=new THREE.Mesh(new THREE.ConeGeometry(0.14,0.65,4),
+      new THREE.MeshLambertMaterial({color:0x1a0806,flatShading:true}));
+    spike.position.y=h+.32; grp.add(spike);
     grp.position.set(px,groundY(px,pz),pz); scene.add(grp);
   }
 
@@ -882,9 +889,9 @@ function buildRosyDisposition(cx, cz) {
   const CRG=new THREE.Group();
   [0,1.1,1.9,2.6].forEach((r,i)=>{
     const ang=i*1.5, sc=0.7+r*.15;
-    CRG.add(Object.assign(new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.12,1.1+r*.55,5),
-      new THREE.MeshLambertMaterial({color:0x1a3010,flatShading:true})),
-      {position:{x:Math.cos(ang)*r*.28,y:(1.1+r*.55)/2,z:Math.sin(ang)*r*.28}}));
+    const st=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.12,1.1+r*.55,5),
+      new THREE.MeshLambertMaterial({color:0x1a3010,flatShading:true}));
+    st.position.set(Math.cos(ang)*r*.28,(1.1+r*.55)/2,Math.sin(ang)*r*.28); CRG.add(st);
     const bm=new THREE.Mesh(new THREE.SphereGeometry(sc*.38,6,5),
       new THREE.MeshLambertMaterial({color:0xcc0022,emissive:new THREE.Color(0x880011),emissiveIntensity:.45,flatShading:true}));
     bm.position.set(Math.cos(ang)*r*.28, 1.1+r*.55+sc*.38, Math.sin(ang)*r*.28); CRG.add(bm);
@@ -918,20 +925,24 @@ function buildBrainWorld(cx, cz) {
   for (let i = 0; i < 14; i++) {
     const a=(i/14)*Math.PI*2, tx=cx+Math.cos(a)*15, tz=cz+Math.sin(a)*15;
     const grp=new THREE.Group(), h=1.8+Math.random()*2.4;
-    grp.add(Object.assign(new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.18,h,6),
-      new THREE.MeshLambertMaterial({color:0xff66aa,flatShading:true})),
-      {position:{x:0,y:h/2,z:0},rotation:{x:0,y:0,z:(Math.random()-.5)*.4}}));
+    const td=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.18,h,6),
+      new THREE.MeshLambertMaterial({color:0xff66aa,flatShading:true}));
+    td.position.y=h/2; td.rotation.z=(Math.random()-.5)*.4; grp.add(td);
     const tip=new THREE.Mesh(new THREE.SphereGeometry(0.2+Math.random()*.15,5,4),
       new THREE.MeshLambertMaterial({color:0xff44bb,emissive:new THREE.Color(0xff44bb),emissiveIntensity:.38,flatShading:true}));
     tip.position.y=h+.2; grp.add(tip);
     grp.position.set(tx,groundY(tx,tz),tz); scene.add(grp);
   }
 
-  // Dense pink flowers
+  // Pink flowers — mix of rich + simple
   const BFC=[0xff88cc,0xff44bb,0xdd55aa,0xffb3d1,0xff2d78,0xff99ee];
-  for (let i = 0; i < 220; i++) {
+  for (let i = 0; i < 70; i++) {
     const a=Math.random()*Math.PI*2, d=Math.random()*17;
     spawnFlowerRich(cx+Math.cos(a)*d,cz+Math.sin(a)*d,BFC[Math.floor(Math.random()*BFC.length)],0.5+Math.random()*1.2);
+  }
+  for (let i = 0; i < 100; i++) {
+    const a=Math.random()*Math.PI*2, d=Math.random()*17;
+    spawnFlower(cx+Math.cos(a)*d,cz+Math.sin(a)*d,BFC[Math.floor(Math.random()*BFC.length)]);
   }
 
   const pl1=new THREE.PointLight(0xff44bb,3.8,44); pl1.position.set(cx,9,cz); scene.add(pl1);
@@ -1008,9 +1019,9 @@ function buildWaterWorld(cx, cz) {
     const dx=cx+Math.cos(a)*d, dz=cz+Math.sin(a)*d;
     const h=1.0+Math.random()*3.5;
     const grp=new THREE.Group();
-    grp.add(Object.assign(new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.14,h,6),
-      new THREE.MeshLambertMaterial({color:0x1a88cc,flatShading:true})),
-      {position:{x:0,y:h/2,z:0}}));
+    const ds=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.14,h,6),
+      new THREE.MeshLambertMaterial({color:0x1a88cc,flatShading:true}));
+    ds.position.y=h/2; grp.add(ds);
     const rs=0.2+Math.random()*.2;
     const drop=new THREE.Mesh(new THREE.SphereGeometry(rs,7,6),
       new THREE.MeshLambertMaterial({color:0x22aadd,emissive:new THREE.Color(0x0a5588),emissiveIntensity:.52,flatShading:true}));
@@ -1023,11 +1034,15 @@ function buildWaterWorld(cx, cz) {
     new THREE.MeshLambertMaterial({color:0x0066aa,emissive:new THREE.Color(0x0055aa),emissiveIntensity:.72}));
   pool.position.set(cx,gy+.05,cz); scene.add(pool);
 
-  // Blue/teal flowers
+  // Blue/teal flowers — mix of rich + simple
   const WFC=[0x22aadd,0x00ccdd,0x4ECDC4,0x0088bb,0x33bbcc,0xaaeeff,0x55ddff];
-  for (let i = 0; i < 180; i++) {
+  for (let i = 0; i < 60; i++) {
     const a=Math.random()*Math.PI*2, d=Math.random()*17;
     spawnFlowerRich(cx+Math.cos(a)*d,cz+Math.sin(a)*d,WFC[Math.floor(Math.random()*WFC.length)],0.5+Math.random()*1.2);
+  }
+  for (let i = 0; i < 90; i++) {
+    const a=Math.random()*Math.PI*2, d=Math.random()*17;
+    spawnFlower(cx+Math.cos(a)*d,cz+Math.sin(a)*d,WFC[Math.floor(Math.random()*WFC.length)]);
   }
 
   const pl1=new THREE.PointLight(0x2299dd,4.2,48); pl1.position.set(cx,9,cz); scene.add(pl1);
