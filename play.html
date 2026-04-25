@@ -501,7 +501,7 @@ const GEM_DATA = [
 // Singles 9-18: trail markers leading toward each album world
 const GEM_POS = [
   [  7, -11], [-11, -17], [ 17, -21], [ -4, -29], [ 23, -15],  // 0-4  albums: central valley
-  [ 25, -92], [ 72, -58], [ -6, -88], [-75, -55], [ 12,  -7],  // 5-8  album worlds + 9 starter single
+  [ 52, -92], [ 72, -58], [-35, -88], [-75, -55], [ 12,  -7],  // 5-8  album worlds + 9 starter single
   [-38, -20], [-58, -40], [  4, -55], [ 40, -30], [ -8, -72],  // 10-14 singles: trails NW / S / NE
   [ 60, -46], [ 16, -65], [ 28, -78], [-18, -75], [ 44, -82],  // 15-18 singles: trails deeper
 ];
@@ -668,9 +668,9 @@ buildObelisk(55, -72);
 
 // ── Album worlds ─────────────────────────────────────────────
 buildRosyDisposition(-75, -55);
-buildBrainWorld(-6, -88);
+buildBrainWorld(-35, -88);
 buildConcreteWorld(72, -58);
-buildWaterWorld(25, -92);
+buildWaterWorld(52, -92);
 
 // ── Trails to each album world ───────────────────────────────
 (function spawnAlbumTrails() {
@@ -690,12 +690,12 @@ buildWaterWorld(25, -92);
   }
   // NW trail → Rosy Disposition
   trail(0,-8,-75,-55, 38, [0xcc0022,0x8b0020,0xff1133,0xaa0033,0x660011]);
-  // S trail → Brain World
-  trail(0,-10,-6,-88, 40, [0xff88cc,0xff44bb,0xdd55aa,0xff2d78,0xffb3d1]);
+  // SW trail → Brain World
+  trail(0,-10,-35,-88, 42, [0xff88cc,0xff44bb,0xdd55aa,0xff2d78,0xffb3d1]);
   // NE trail → Mouthful of Concrete
   trail(0,-8,72,-58, 36, [0x888899,0x4ECDC4,0x667788,0x9999aa,0x4ECDC4]);
-  // Far-S trail → Tears for Tea Maker
-  trail(0,-10,25,-92, 42, [0x22aadd,0x00ccdd,0x4ECDC4,0x0088bb,0x33bbcc]);
+  // SE trail → Tears for Tea Maker
+  trail(0,-10,52,-92, 44, [0x22aadd,0x00ccdd,0x4ECDC4,0x0088bb,0x33bbcc]);
 })();
 
 // ═══════════════════════════════════════════════════════════
@@ -1623,9 +1623,9 @@ const ZONES = [
   { name:'✦ SECRET GARDEN ✦',             cx:-44, cz:-36,  r:18, fog:0x180a22, amb:0xff88cc, bg:0x180a22 },
   // Album worlds
   { name:'✦ ROSY DISPOSITION ✦',          cx:-75, cz:-55,  r:24, fog:0x1e0008, amb:0xcc1133, bg:0x1e0008 },
-  { name:"✦ DON'T LET IT GET TO YOU ✦",  cx: -6, cz:-88,  r:24, fog:0x1a0820, amb:0xff44bb, bg:0x1a0820 },
+  { name:"✦ DON'T LET IT GET TO YOU ✦",  cx:-35, cz:-88,  r:24, fog:0x1a0820, amb:0xff44bb, bg:0x1a0820 },
   { name:'✦ MOUTHFUL OF CONCRETE ✦',      cx: 72, cz:-58,  r:24, fog:0x0d0f18, amb:0x7799aa, bg:0x0d0f18 },
-  { name:'✦ TEARS FOR THE TEA MAKER ✦',   cx: 25, cz:-92,  r:24, fog:0x020a18, amb:0x22aadd, bg:0x020a18 },
+  { name:'✦ TEARS FOR THE TEA MAKER ✦',   cx: 52, cz:-92,  r:24, fog:0x020a18, amb:0x22aadd, bg:0x020a18 },
 ];
 let curZone = -1;
 const fogTarget = new THREE.Color(0x1a0828);
