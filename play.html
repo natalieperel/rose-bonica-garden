@@ -1530,7 +1530,7 @@ document.addEventListener('visibilitychange', () => {
 const minimapCanvas = document.getElementById('minimap');
 const mm = minimapCanvas.getContext('2d');
 const MM_W = minimapCanvas.width, MM_H = minimapCanvas.height;
-const WORLD_R = 75; // world radius shown on minimap
+const WORLD_R = 108; // world radius shown on minimap (matches clamp bounds)
 
 function toMM(wx, wz) {
   return {
